@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MedTech — pages/login.js  (index.html)
+   MedTech — pages/login.js  (entrar.html)
    Login com supabase.auth.signInWithPassword() (via Auth.signIn).
    ========================================================================== */
 

@@ -1,0 +1,360 @@
+/* ==========================================================================
+   MedTech — splash.css
+   Tela de abertura (index.html): logo, nome e frase animados.
+   Usa as variáveis de base.css. Sem animação para quem pede "reduzir movimento".
+   ========================================================================== */
+
+.splash {
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 35%, #0a5c6b 0%, var(--brand-900) 45%, #031d23 100%);
+  color: var(--white);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.sp-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: var(--space-6) var(--space-4) calc(var(--space-7) + env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+/* Brilho que respira atrás do logo */
+.sp-glow {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  width: min(80vw, 520px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(20, 166, 187, 0.45), transparent 65%);
+  transform: translate(-50%, -50%) scale(0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.2s var(--ease), transform 1.2s var(--ease);
+}
+
+.is-lit .sp-glow {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  animation: sp-breathe 4s ease-in-out 1.2s infinite;
+}
+
+@keyframes sp-breathe {
+  50% { transform: translate(-50%, -50%) scale(1.08); opacity: 0.8; }
+}
+
+/* ---------- Logo + anel dos dias ---------- */
+.sp-center {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(62vw, 260px);
+  aspect-ratio: 1;
+  perspective: 800px;
+}
+
+.sp-ring {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  transition: transform 1.4s var(--ease);
+}
+
+/* Cada dia fica numa posição do círculo (definida em --a pelo script) */
+.sp-ring li {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--font-head);
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.35);
+  transform: rotate(var(--a)) translateY(calc(-1 * min(31vw, 130px))) rotate(calc(-1 * var(--a))) scale(0.3);
+  opacity: 0;
+  transition: transform 0.6s cubic-bezier(0.3, 1.5, 0.5, 1), opacity 0.4s var(--ease),
+              background 0.4s var(--ease), color 0.4s var(--ease), box-shadow 0.4s var(--ease);
+}
+
+.sp-ring li.is-on {
+  opacity: 1;
+  transform: rotate(var(--a)) translateY(calc(-1 * min(31vw, 130px))) rotate(calc(-1 * var(--a))) scale(1);
+}
+
+.sp-ring li.is-lit {
+  background: #5fd0de;
+  border-color: #5fd0de;
+  color: var(--brand-900);
+  box-shadow: 0 0 16px rgba(95, 208, 222, 0.7);
+}
+
+/* Dia de hoje fica verde; um brilho percorre os dias depois de carregar */
+.sp-ring li.is-today {
+  background: #5be3a1;
+  border-color: #5be3a1;
+  color: #063b2a;
+  box-shadow: 0 0 22px rgba(91, 227, 161, 0.8);
+}
+
+.sp-ring li.is-pulse {
+  transform: rotate(var(--a)) translateY(calc(-1 * min(31vw, 130px))) rotate(calc(-1 * var(--a))) scale(1.3);
+  box-shadow: 0 0 26px rgba(255, 255, 255, 0.75);
+}
+
+.sp-logo {
+  position: relative;
+  width: 46%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 28%;
+  background: none;
+  cursor: pointer;
+  transform: scale(0) rotate(-25deg);
+  transform-style: preserve-3d;
+  transition: transform 0.9s cubic-bezier(0.25, 1.6, 0.45, 1);
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.45));
+}
+
+.sp-logo:focus-visible { outline: 3px solid #5fd0de; outline-offset: 6px; }
+.sp-logo svg { display: block; width: 100%; height: 100%; }
+
+.is-logo .sp-logo {
+  transform: scale(1) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transition: transform 0.25s var(--ease);
+}
+
+.is-logo-entering .sp-logo { transition: transform 0.9s cubic-bezier(0.25, 1.6, 0.45, 1); }
+
+/* As duas metades da cápsula se encaixam */
+.sp-half {
+  transition: transform 0.55s cubic-bezier(0.5, 1.8, 0.55, 1), opacity 0.3s var(--ease);
+}
+
+.sp-half--a { transform: translateX(-34px); opacity: 0; }
+.sp-half--b { transform: translateX(34px); opacity: 0; }
+
+.is-click .sp-half { transform: none; opacity: 1; }
+
+/* Rotação da cápsula só no CSS (somar com o atributo transform deslocaria o desenho) */
+.sp-capsule { transform: rotate(-45deg); transform-origin: 60px 60px; transform-box: view-box; }
+.is-wiggle .sp-capsule { animation: sp-wiggle 0.9s cubic-bezier(0.3, 1.4, 0.5, 1); }
+
+@keyframes sp-wiggle {
+  0% { transform: rotate(-45deg); }
+  35% { transform: rotate(315deg) scale(1.1); }
+  60% { transform: rotate(300deg); }
+  100% { transform: rotate(315deg); }
+}
+
+/* ---------- Nome e frase ---------- */
+.sp-name {
+  display: flex;
+  justify-content: center;
+  margin: var(--space-6) 0 0;
+  font-family: var(--font-head);
+  font-size: clamp(2.4rem, 11vw, 3.6rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--white);
+}
+
+.sp-name span {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.5em) rotate(8deg);
+  transition: transform 0.6s cubic-bezier(0.3, 1.6, 0.5, 1), opacity 0.4s var(--ease);
+}
+
+.sp-name span.is-on { opacity: 1; transform: none; }
+.sp-name .sp-accent { color: #5fd0de; }
+
+.sp-tagline {
+  max-width: 320px;
+  margin: var(--space-4) auto 0;
+  font-size: clamp(1rem, 4.2vw, 1.15rem);
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.82);
+  opacity: 0;
+  transform: translateY(10px);
+  filter: blur(6px);
+  transition: opacity 0.9s var(--ease), transform 0.9s var(--ease), filter 0.9s var(--ease);
+}
+
+.is-tagline .sp-tagline { opacity: 1; transform: none; filter: none; }
+
+/* ---------- Carregamento e botão ---------- */
+.sp-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--space-7) + env(safe-area-inset-bottom));
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+  opacity: 0;
+  transition: opacity 0.6s var(--ease);
+}
+
+.is-tagline .sp-bottom { opacity: 1; }
+
+.sp-progress {
+  width: min(220px, 60vw);
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.sp-progress span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #5fd0de, #5be3a1);
+  transition: width 0.5s var(--ease);
+}
+
+.sp-status {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.sp-start {
+  min-width: 220px;
+  min-height: 52px;
+  padding: 0 var(--space-6);
+  border: 0;
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--brand-900);
+  font: inherit;
+  font-weight: 700;
+  font-size: var(--fs-md);
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(95, 208, 222, 0.35);
+  animation: sp-pop 0.5s cubic-bezier(0.3, 1.6, 0.5, 1), sp-halo 2.2s ease-in-out 0.6s infinite;
+}
+
+.sp-start:focus-visible { outline: 3px solid #5fd0de; outline-offset: 4px; }
+
+@keyframes sp-pop { from { transform: scale(0.6); opacity: 0; } }
+@keyframes sp-halo {
+  50% { box-shadow: 0 10px 30px rgba(95, 208, 222, 0.35), 0 0 0 10px rgba(255, 255, 255, 0.08); }
+}
+
+.sp-skip {
+  position: absolute;
+  top: calc(var(--space-4) + env(safe-area-inset-top));
+  right: var(--space-4);
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.sp-skip:focus-visible { outline: 3px solid #5fd0de; outline-offset: 2px; }
+
+/* ---------- Partículas e ondas do toque ---------- */
+.sp-particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.sp-pill {
+  position: absolute;
+  width: 16px;
+  height: 8px;
+  margin: -4px 0 0 -8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffffff 50%, var(--c, #5fd0de) 50%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  animation: sp-burst 1.1s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes sp-burst {
+  0% { transform: translate(0, 0) rotate(0deg) scale(0.4); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) rotate(var(--r)) scale(1); opacity: 0; }
+}
+
+.sp-ripple {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  border: 2px solid rgba(95, 208, 222, 0.7);
+  animation: sp-ripple 0.8s ease-out forwards;
+}
+
+@keyframes sp-ripple {
+  to { transform: scale(9); opacity: 0; }
+}
+
+/* ---------- Saída: o logo cresce e a tela se abre ---------- */
+.is-leaving .sp-logo {
+  transform: scale(14) !important;
+  transition: transform 0.75s cubic-bezier(0.7, 0, 0.3, 1) !important;
+}
+
+.is-leaving .sp-ring,
+.is-leaving .sp-name,
+.is-leaving .sp-tagline,
+.is-leaving .sp-bottom,
+.is-leaving .sp-skip {
+  opacity: 0;
+  transition: opacity 0.3s var(--ease);
+}
+
+.is-leaving::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  animation: sp-fade-in 0.35s 0.45s forwards;
+  opacity: 0;
+}
+
+@keyframes sp-fade-in { to { opacity: 1; } }
+
+/* Telas baixas (celular deitado) */
+@media (max-height: 560px) {
+  .sp-center { width: min(36vh, 200px); }
+  .sp-name { margin-top: var(--space-3); }
+  .sp-bottom { position: static; margin-top: var(--space-4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash *, .splash *::before, .splash *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}

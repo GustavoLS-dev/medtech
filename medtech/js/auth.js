@@ -251,7 +251,7 @@ const Auth = (function () {
     if (!result.error) {
       clearPendingEmail();
       setRecoveryFlag(false);
-      window.location.replace("index.html?motivo=saiu");
+      window.location.replace("entrar.html?motivo=saiu");
     }
     return result;
   }
@@ -335,7 +335,7 @@ const Auth = (function () {
 
   function goToLogin(reason) {
     const page = currentPageFile();
-    let url = "index.html?motivo=" + encodeURIComponent(reason);
+    let url = "entrar.html?motivo=" + encodeURIComponent(reason);
     if (PRIVATE_PAGES.indexOf(page) !== -1) url += "&voltar=" + encodeURIComponent(page);
     window.location.replace(url);
   }

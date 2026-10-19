@@ -205,7 +205,7 @@ const UI = (function () {
     ];
 
     aside.innerHTML =
-      '<a class="logo" href="index.html" style="color:#fff">' + logoHtml() + "</a>" +
+      '<a class="logo" href="entrar.html" style="color:#fff">' + logoHtml() + "</a>" +
       "<div>" +
         "<h2>Cada dose no horário certo, com registro de tudo.</h2>" +
         "<p>O MedTech organiza seus medicamentos, programa a dispensação automática e mostra com clareza o que realmente aconteceu.</p>" +
