@@ -18,6 +18,7 @@ Feito apenas com **HTML, CSS e JavaScript puro**. Não usa Vite, frameworks nem 
 | Tabelas e políticas RLS no Supabase | ✅ [`../supabase/`](../supabase/LEIA-ME.md): execute o 01 e depois o 02 no SQL Editor |
 | Organizador semanal: 7 compartimentos (servo 0 = segunda … 6 = domingo) × manhã/tarde/noite | ✅ Páginas Medicamentos e Programação |
 | Automação ligada/desligada pelo site (sem terminal) | ✅ Página Programação |
+| "Liberar agora" e atualização em tempo real | ✅ Página Hoje (requer `supabase/03` e firmware 2.1) |
 | Vinculação e status do ESP32 | ✅ Página Dispositivo |
 | Horários do dia, relatório diário e confirmação de retirada | ✅ Páginas Hoje e Relatório |
 | Firmware com automação dos servos | ✅ [`../firmware/MedTechAutomacao`](../firmware/MedTechAutomacao/LEIA-ME.md), **sem teste físico registrado** |

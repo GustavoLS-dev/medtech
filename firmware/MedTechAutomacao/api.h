@@ -1,5 +1,5 @@
 #pragma once
-// Comunicacao com o Supabase (supabase/02-organizador-semanal.sql):
+// Comunicacao com o Supabase (supabase/02 e 03):
 //   medtech_device_agenda       registra o contato e devolve a agenda do organizador
 //   medtech_device_slot_report  registra eventos por horario (idempotente pelo event_uid)
 // HTTPS com certificado raiz verificado; nunca setInsecure().
@@ -11,6 +11,16 @@
 #include "armazenamento.h"
 
 enum class Rpc { OK, REDE, NEGADO, RECUSADO, SERVIDOR, RESPOSTA_INVALIDA };
+
+// Pedidos "Liberar agora" feitos no site (so em memoria: valem por 2 min no servidor).
+struct Pedido {
+  uint8_t diaSemana;  // 0 = domingo ... 6 = sabado
+  uint8_t periodo;
+  uint32_t horario;   // epoch do horario de hoje daquele periodo
+};
+constexpr int MAX_PEDIDOS = 3;
+Pedido pedidos[MAX_PEDIDOS];
+uint8_t totalPedidos = 0;
 
 constexpr size_t MAX_RESPOSTA = 8192;
 int32_t diferencaRelogio = 0;   // relogio local - relogio do servidor (s)
@@ -131,6 +141,22 @@ bool converterAgenda(JsonDocument &doc, Agenda &nova) {
   return true;
 }
 
+// Le os pedidos da resposta. Campo ausente (banco sem o 03) = nenhum pedido.
+bool converterPedidos(JsonDocument &doc, Pedido *destino, uint8_t &total) {
+  total = 0;
+  if (doc["requests"].isNull()) return true;
+  if (!doc["requests"].is<JsonArray>()) return false;
+  for (JsonObject p : doc["requests"].as<JsonArray>()) {
+    if (!p["weekday"].is<int>() || !p["scheduled_for"].is<int64_t>()) return false;
+    int dia = p["weekday"];
+    int64_t horario = p["scheduled_for"];
+    uint8_t periodo;
+    if (dia < 0 || dia > 6 || horario <= 0 || horario % 60 != 0 || !lerPeriodo(p["period"].as<const char *>(), periodo)) return false;
+    if (total < MAX_PEDIDOS) destino[total++] = {uint8_t(dia), periodo, uint32_t(horario)};
+  }
+  return true;
+}
+
 bool agendasIguais(const Agenda &a, const Agenda &b) {
   return a.valida == b.valida && a.automacao == b.automacao && a.tempoAbertoS == b.tempoAbertoS &&
          a.total == b.total && memcmp(a.itens, b.itens, sizeof(Horario) * a.total) == 0;
@@ -147,12 +173,17 @@ Rpc sincronizarAgenda(bool &mudou) {
   if (r == Rpc::NEGADO) {
     // Chave trocada ou aparelho desvinculado: para de usar a agenda antiga.
     if (agenda.valida) { agenda = {}; agenda.versao = VERSAO_DADOS; salvarAgenda(); mudou = true; }
+    totalPedidos = 0;
     return r;
   }
   if (r != Rpc::OK) return r;
 
   Agenda nova;
-  if (!converterAgenda(resposta, nova)) return Rpc::RESPOSTA_INVALIDA;
+  Pedido novosPedidos[MAX_PEDIDOS];
+  uint8_t novosTotal = 0;
+  if (!converterAgenda(resposta, nova) || !converterPedidos(resposta, novosPedidos, novosTotal)) return Rpc::RESPOSTA_INVALIDA;
+  memcpy(pedidos, novosPedidos, sizeof(Pedido) * novosTotal);
+  totalPedidos = novosTotal;
 
   uint32_t agora = time(nullptr);
   diferencaRelogio = int32_t(int64_t(agora) - resposta["server_time"].as<int64_t>());

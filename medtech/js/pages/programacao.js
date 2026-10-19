@@ -150,6 +150,10 @@
 
   Auth.ready.then(function () {
     load();
+    // Tempo real (sem atrapalhar quem está editando os horários)
+    Data.subscribe(["doses", "medications", "dispenser_settings"], function () {
+      if (!settingsForm.contains(document.activeElement)) load();
+    });
     // Atualiza as cores da coluna de hoje sem recarregar a página.
     setInterval(function () { if (!document.hidden && !settingsForm.contains(document.activeElement)) load(); }, 30000);
   });

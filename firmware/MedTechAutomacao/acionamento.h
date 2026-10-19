@@ -60,13 +60,21 @@ bool agendaEmUso(uint32_t agora) {
   return agenda.valida && agora >= agenda.recebidaEm && agora - agenda.recebidaEm <= VALIDADE_AGENDA_S;
 }
 
-// Motivo para nao executar horarios agora (nullptr = pode executar).
-const char *bloqueioAutomacao(uint32_t agora) {
+// Motivo para nao abrir nada agora (nullptr = pode). Vale para horarios e pedidos.
+const char *bloqueioAcionamento(uint32_t agora) {
   if (!Hardware::pcaPronto) return "PCA9685 sem resposta";
   if (!relogioSincronizado) return "relogio nao sincronizado";
   if (!relogioConferido) return "relogio nao conferido com o servidor";
   if (!agenda.valida) return "sem agenda valida";
   if (!agendaEmUso(agora)) return "agenda vencida (sem sincronizar ha mais de 24 h)";
+  return nullptr;
+}
+
+// Horarios programados exigem tambem a automacao ligada no site.
+// Pedidos "Liberar agora" nao: sao um comando explicito do usuario.
+const char *bloqueioAutomacao(uint32_t agora) {
+  const char *motivo = bloqueioAcionamento(agora);
+  if (motivo) return motivo;
   if (!agenda.automacao) return "automacao desligada no site (pagina Programacao)";
   return nullptr;
 }
@@ -198,14 +206,14 @@ void pararAcionamento() {
 }
 
 // ---- Execucao de um horario ----
-void processarHorario(const Horario &h, uint32_t horario) {
+void processarHorario(const Horario &h, uint32_t horario, bool pedido = false) {
   uint32_t agora = time(nullptr);
   uint8_t indice = indiceDoDia(h.diaSemana);
-  Serial.printf("[AGENDA] %s %s %02u:%02u (%u medicamento(s)): iniciando.\n", NOMES_DIAS[indice],
-                nomePeriodo(h.periodo), h.minutos / 60, h.minutos % 60, h.medicamentos);
+  Serial.printf("[%s] %s %s %02u:%02u (%u medicamento(s)): iniciando.\n", pedido ? "PEDIDO" : "AGENDA",
+                NOMES_DIAS[indice], nomePeriodo(h.periodo), h.minutos / 60, h.minutos % 60, h.medicamentos);
   char l2[24];
   snprintf(l2, sizeof(l2), "%s - %s", NOMES_DIAS[indice], nomePeriodo(h.periodo));
-  avisar("Horario program.", l2, 30000);
+  avisar(pedido ? "Pedido do site" : "Horario program.", l2, 30000);
 
   // 1. Grava ANTES de qualquer movimento: protege contra reinicio e repeticao.
   gravarRegistro(horario, h.periodo, indice, REG_EM_ANDAMENTO);
@@ -243,10 +251,32 @@ void processarHorario(const Horario &h, uint32_t horario) {
   abrirCompartimento(indice);
 }
 
+// Pedido "Liberar agora": abre o compartimento de hoje e registra aquele periodo.
+// O registro local (horario + periodo) impede que o horario normal abra de novo.
+bool atenderPedido(uint32_t agora) {
+  if (bloqueioAcionamento(agora)) return false;
+  for (int i = 0; i < totalPedidos; i++) {
+    const Pedido p = pedidos[i];
+    // Remove da lista antes de executar: cada pedido e tentado uma unica vez.
+    memmove(&pedidos[i], &pedidos[i + 1], sizeof(Pedido) * (totalPedidos - i - 1));
+    totalPedidos--;
+    if (buscarRegistro(p.horario, p.periodo)) return false;
+    Horario h = {p.diaSemana, p.periodo, 0, 0, 0};
+    struct tm local; time_t t = p.horario; localtime_r(&t, &local);
+    h.minutos = local.tm_hour * 60 + local.tm_min;
+    for (int j = 0; j < agenda.total; j++)
+      if (agenda.itens[j].diaSemana == p.diaSemana && agenda.itens[j].periodo == p.periodo) h.medicamentos = agenda.itens[j].medicamentos;
+    processarHorario(h, p.horario, true);
+    return true;
+  }
+  return false;
+}
+
 // Procura horarios vencidos. Executa no maximo um por chamada.
 void verificarAgenda() {
   if (job.fase != Fase::LIVRE) return;
   uint32_t agora = time(nullptr);
+  if (atenderPedido(agora)) return;
   if (bloqueioAutomacao(agora)) return;
   if (!automacaoDesde) { automacaoDesde = agora; salvarAutomacaoDesde(); }
 

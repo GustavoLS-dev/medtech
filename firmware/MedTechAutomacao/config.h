@@ -8,7 +8,7 @@
 // ============================================================================
 namespace MedTechConfig {
 
-constexpr char FIRMWARE_VERSION[] = "medtech-auto-2.0.0";
+constexpr char FIRMWARE_VERSION[] = "medtech-auto-2.1.0";
 
 // Organizador semanal: um compartimento (servo) por dia.
 // Indice 0 = segunda ... 6 = domingo (mesma ordem do site).
@@ -59,7 +59,8 @@ constexpr uint32_t JANELA_PASSADO_S = 12 * 3600;
 constexpr uint32_t VALIDADE_AGENDA_S = 24 * 3600;
 
 // Consulta ao Supabase depois de um sucesso; falhas dobram a espera ate o maximo.
-constexpr uint32_t CONSULTA_MS = 30000;
+// 15 s: o botao "Liberar agora" do site responde rapido (~1-3 MB/h de dados).
+constexpr uint32_t CONSULTA_MS = 15000;
 constexpr uint32_t CONSULTA_MAX_MS = 300000;
 
 // Diferenca maxima aceita entre o relogio do ESP32 e o do servidor.

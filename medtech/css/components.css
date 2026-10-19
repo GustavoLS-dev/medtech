@@ -1254,3 +1254,10 @@ body.is-checking-session .app {
 .week-grid .is-today {
   background: var(--primary-soft);
 }
+
+/* Spinner pequeno dentro de badges ("Aguardando o dispensador…") */
+.spinner--sm {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+}

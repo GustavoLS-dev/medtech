@@ -186,6 +186,7 @@
 
   Auth.ready.then(function () {
     load();
+    Data.subscribe(["device_events", "medications", "dispenser_settings"], load);  // tempo real
     refreshTimer = setInterval(function () { if (!document.hidden) load(); }, REFRESH_MS);
   });
 })();

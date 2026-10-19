@@ -4,6 +4,10 @@ Este firmware automatiza o organizador: **7 compartimentos, um por dia** (servo 
 
 Nada precisa ser digitado no terminal: a automação é ligada e desligada no site, na página **Programação**. O Monitor Serial serve só para diagnóstico.
 
+**Liberar agora (versão 2.1):** na página **Hoje**, cada período ainda não tratado tem o botão **Liberar agora**. O pedido vai para o Supabase (vale por 2 minutos); o ESP32 o recebe na próxima consulta (a cada 15 s), abre o compartimento do dia, espera o tempo configurado, fecha e registra aquele período. No horário normal ele não abre de novo. O pedido funciona mesmo com a automação desligada, porque é um comando explícito do usuário; as demais proteções (relógio, agenda, PCA9685, duplicidade) continuam valendo. No Monitor Serial aparece como `[PEDIDO]` e no LCD como `Pedido do site`.
+
+Com o `03` instalado, o site também se atualiza **em tempo real**: a cor do medicamento muda no momento em que o aparelho registra.
+
 Os firmwares `MedTechComunicacao` e `MedTechCalibracao`, na Área de Trabalho, continuam intactos. Use o de calibração para medir as posições das portas.
 
 **A bomba nunca é acionada.** O relé (GPIO 18) fica em HIGH desde a primeira linha do `setup()` e é reforçado a cada volta do `loop()`. Não existe comando nem função que o ligue.
@@ -18,7 +22,7 @@ Site (Medicamentos + Programação) ──► Supabase ◄── ESP32 (consulta
 ```
 
 1. No site, cada medicamento recebe **dias** e **períodos**. Em **Programação** ficam os horários de manhã, tarde e noite, o tempo aberto e o botão da automação.
-2. A cada 30 s, o ESP32 chama `medtech_device_agenda` e recebe um item por **dia + período** que tenha medicamento ativo, com o horário, o tempo aberto e o estado da automação. Ele não recebe o nome dos medicamentos.
+2. A cada 15 s, o ESP32 chama `medtech_device_agenda` e recebe um item por **dia + período** que tenha medicamento ativo, com o horário, o tempo aberto e o estado da automação. Ele não recebe o nome dos medicamentos.
 3. A agenda válida fica guardada na flash. Sem internet, ela continua valendo por **até 24 h**.
 4. A cada segundo, o aparelho verifica se algum horário venceu. Ao encontrar um:
    1. grava na flash que o horário está **em andamento**, antes de mover qualquer coisa;

@@ -7,7 +7,9 @@ Arquivos, executados **nesta ordem**:
 1. [01-medtech-dispensador.sql](01-medtech-dispensador.sql): tabelas, RLS, vinculação do aparelho.
 2. [02-organizador-semanal.sql](02-organizador-semanal.sql): organizador por dia × manhã/tarde/noite, configuração do dispensador (horários, tempo aberto, automação) e as funções do firmware 2.0 (`medtech_device_agenda` e `medtech_device_slot_report`). Ele não apaga dados nem as funções do 01.
 
-Se você já executou o 01, **execute só o 02**, do mesmo jeito descrito abaixo. Os dois podem ser executados de novo sem perder dados. Se rodar o 01 de novo, rode o 02 logo depois.
+3. [03-liberar-agora-e-tempo-real.sql](03-liberar-agora-e-tempo-real.sql): botão "Liberar agora" (tabela `dispense_requests` e função `medtech_request_dispense`), agenda com pedidos para o firmware 2.1 e atualização em tempo real (Supabase Realtime) das tabelas do site.
+
+Se você já executou o 01 e o 02, **execute só o 03**. Se executou só o 01, execute o 02 e depois o 03, do mesmo jeito descrito abaixo. Os dois podem ser executados de novo sem perder dados. Se rodar o 01 de novo, rode o 02 logo depois.
 
 ## Instalar (uma vez)
 

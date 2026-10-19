@@ -111,6 +111,7 @@
 
   Auth.ready.then(function () {
     load();
+    Data.subscribe(["doses"], load);  // tempo real
     setInterval(function () { if (!document.hidden) load(); }, REFRESH_MS);
   });
 })();

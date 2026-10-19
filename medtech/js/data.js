@@ -42,6 +42,10 @@ const Data = (function () {
   const DEVICE_FIELDS = "id,token_hint,firmware_version,last_seen_at,paired_at";
   const DOSE_FIELDS = "id,medication_id,medication_name,compartment,period,scheduled_for,status,detail,attempt_at,finished_at,user_confirmed_at";
   const EVENT_FIELDS = "id,event_type,period,scheduled_for,detail,occurred_at,received_at";
+  const REQUEST_FIELDS = "id,period,scheduled_for,status,created_at";
+
+  // Um pedido "Liberar agora" vale por 2 minutos (mesma regra do banco).
+  const REQUEST_SECONDS = 120;
 
   function client() {
     const c = SupabaseConfig.getClient();
@@ -212,6 +216,49 @@ const Data = (function () {
     return check(await client().rpc("medtech_confirm_slot", { p_scheduled_for: scheduledFor, p_period: period }));
   }
 
+  /* ------------------------------------------------------------------ */
+  /* "Liberar agora"                                                    */
+  /* ------------------------------------------------------------------ */
+  /** Pede ao dispensador para liberar agora o período de hoje (o servidor calcula o horário). */
+  async function requestDispense(period) {
+    return check(await client().rpc("medtech_request_dispense", { p_period: period }));
+  }
+
+  /** Pedidos ainda válidos (pendentes ou em andamento). */
+  async function listActiveRequests() {
+    const since = new Date(Date.now() - REQUEST_SECONDS * 1000).toISOString();
+    return check(await client().from("dispense_requests").select(REQUEST_FIELDS)
+      .gte("created_at", since).in("status", ["pending", "taken"]).order("created_at", { ascending: false }));
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Tempo real (Supabase Realtime)                                     */
+  /* O RLS vale também aqui: cada conta só recebe as próprias linhas.    */
+  /* ------------------------------------------------------------------ */
+  /**
+   * Chama onChange (no máximo uma vez a cada 400 ms) quando alguma das
+   * tabelas muda. Devolve uma função para cancelar.
+   */
+  function subscribe(tables, onChange) {
+    let timer = null;
+    const notify = function () {
+      clearTimeout(timer);
+      timer = setTimeout(onChange, 400);
+    };
+    let channel;
+    try {
+      channel = client().channel("medtech-" + Math.random().toString(36).slice(2));
+      tables.forEach(function (table) {
+        channel.on("postgres_changes", { event: "*", schema: "public", table: table }, notify);
+      });
+      channel.subscribe();
+    } catch (e) {
+      // Sem Realtime, as páginas continuam se atualizando pelo intervalo.
+      return function () {};
+    }
+    return function () { client().removeChannel(channel); };
+  }
+
   /** Chave de UI.DOSE_STATES para uma dose registrada. */
   function doseState(dose) {
     if (!dose) return "unknown";
@@ -328,6 +375,9 @@ const Data = (function () {
     listDeviceEvents: listDeviceEvents,
     listDoses: listDoses,
     confirmSlot: confirmSlot,
+    requestDispense: requestDispense,
+    listActiveRequests: listActiveRequests,
+    subscribe: subscribe,
     doseState: doseState,
     slotState: slotState,
     spParts: spParts,

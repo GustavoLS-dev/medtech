@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 import { arquivo, novoBanco, criarUsuario, como, um, novoToken, parear, horario } from './banco-util.mjs';
 
 const SCRIPTS = ['01-medtech-dispensador.sql', '02-organizador-semanal.sql'];
+// O site e o firmware 2.1 usam também o 03; as colunas são conferidas com ele.
+const SCRIPTS_SITE = [...SCRIPTS, '03-liberar-agora-e-tempo-real.sql'];
 const TODOS_OS_DIAS = [0, 1, 2, 3, 4, 5, 6];
 
 async function criarRemedio(db, uid, valores = {}) {
@@ -189,7 +191,7 @@ test('migração preserva dados da versão 1 e pode ser executada de novo', asyn
 });
 
 test('as colunas usadas pelo site (medtech/js/data.js) existem e são legíveis', async () => {
-  const db = await novoBanco(SCRIPTS);
+  const db = await novoBanco(SCRIPTS_SITE);
   const a = await criarUsuario(db);
   await criarRemedio(db, a);
   await configurar(db, a);
@@ -201,7 +203,8 @@ test('as colunas usadas pelo site (medtech/js/data.js) existem e são legíveis'
     dispenser_settings: campos('SETTINGS_FIELDS'),
     devices: campos('DEVICE_FIELDS'),
     doses: campos('DOSE_FIELDS'),
-    device_events: campos('EVENT_FIELDS')
+    device_events: campos('EVENT_FIELDS'),
+    dispense_requests: campos('REQUEST_FIELDS')
   };
   for (const [tabela, colunas] of Object.entries(consultas)) {
     await como(db, a, () => db.query(`select ${colunas} from public.${tabela}`));
