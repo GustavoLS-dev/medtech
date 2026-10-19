@@ -69,8 +69,24 @@
             : "—") + "</td>";
         }).join("") + "</tr>";
     }).join("");
-    grid.innerHTML = '<table class="week-grid"><caption class="sr-only">Medicamentos por dia e período</caption><thead>' +
-      head + "</thead><tbody>" + rows + "</tbody></table>";
+    // No celular a tabela larga vira uma lista: um dia por linha, com os 3 períodos.
+    const list = '<ul class="week-list">' + Data.DAYS.map(function (d) {
+      const isToday = d.weekday === today.weekday;
+      return '<li class="week-list__day' + (isToday ? " is-today" : "") + '">' +
+        '<p class="week-list__name">' + d.name + (isToday ? " (hoje)" : "") +
+        ' <span class="text-xs text-subtle">servo ' + (Data.compartmentOf(d.weekday) - 1) + "</span></p>" +
+        '<div class="week-list__periods">' + Data.PERIODS.map(function (p) {
+          const meds = Data.medicationsFor(medications, d.weekday, p.key);
+          return '<div class="week-list__period"><span class="week-list__label">' + p.label + " · " +
+            UI.escapeHtml(Data.periodTime(settings, p.key)) + "</span>" +
+            (meds.length ? meds.map(function (m) { return chipFor(m, d, p.key, today); }).join("") : '<span class="text-subtle">—</span>') +
+            "</div>";
+        }).join("") + "</div></li>";
+    }).join("") + "</ul>";
+
+    grid.innerHTML = '<table class="week-grid"><caption class="sr-only">Medicamentos por dia e período</caption>' +
+      '<colgroup><col class="week-grid__period"></colgroup><thead>' +
+      head + "</thead><tbody>" + rows + "</tbody></table>" + list;
   }
 
   settingsForm.addEventListener("submit", async function (event) {
