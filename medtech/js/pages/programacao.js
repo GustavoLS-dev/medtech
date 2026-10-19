@@ -17,7 +17,8 @@
     morning_time: document.getElementById("morning-time"),
     afternoon_time: document.getElementById("afternoon-time"),
     night_time: document.getElementById("night-time"),
-    open_seconds: document.getElementById("open-seconds")
+    open_seconds: document.getElementById("open-seconds"),
+    pump_seconds: document.getElementById("pump-seconds")
   };
 
   let medications = [];
@@ -36,8 +37,8 @@
     document.getElementById("auto-dot").className = "status-dot status-dot--" + (on ? "online" : "offline");
     document.getElementById("auto-label").textContent = on ? "Automação ligada" : "Automação desligada";
     document.getElementById("auto-text").textContent = on
-      ? "O dispensador abre o compartimento do dia em cada horário programado, sem nenhum comando manual."
-      : "O dispensador recebe a agenda, mas não abre nenhum compartimento. Ligue depois de testar os servos.";
+      ? "Em cada horário programado, o dispensador abre o compartimento do dia (cápsulas) e liga a bomba (líquidos), sem nenhum comando manual."
+      : "O dispensador recebe a agenda, mas não abre nenhum compartimento nem liga a bomba. Ligue depois de testar os servos e a bomba.";
     autoButton.textContent = on ? "Desligar automação" : "Ligar automação";
     autoButton.className = "btn " + (on ? "btn--secondary" : "btn--primary");
     autoButton.disabled = false;
@@ -95,7 +96,8 @@
       morning_time: inputs.morning_time.value,
       afternoon_time: inputs.afternoon_time.value,
       night_time: inputs.night_time.value,
-      open_seconds: Number(inputs.open_seconds.value)
+      open_seconds: Number(inputs.open_seconds.value),
+      pump_seconds: Number(inputs.pump_seconds.value)
     };
     if (![values.morning_time, values.afternoon_time, values.night_time].every(function (t) { return TIME_PATTERN.test(t); })) {
       return UI.showAlert(settingsMessage, "danger", "Horário inválido", "Preencha os três horários.");
@@ -106,6 +108,9 @@
     if (!Number.isInteger(values.open_seconds) || values.open_seconds < 5 || values.open_seconds > 300) {
       return UI.showAlert(settingsMessage, "danger", "Tempo inválido", "Use de 5 a 300 segundos.");
     }
+    if (!Number.isInteger(values.pump_seconds) || values.pump_seconds < 1 || values.pump_seconds > 30) {
+      return UI.showAlert(settingsMessage, "danger", "Tempo da bomba inválido", "Use de 1 a 30 segundos.");
+    }
 
     UI.setButtonLoading(saveButton, true);
     try {
@@ -113,7 +118,7 @@
       UI.clearAlert(settingsMessage);
       renderSettings();
       renderGrid();
-      UI.toast("Horários salvos. O dispensador recebe a mudança em até 30 segundos.", "success");
+      UI.toast("Horários salvos. O dispensador recebe a mudança em até 15 segundos.", "success");
     } catch (error) {
       const info = Data.describeError(error);
       UI.showAlert(settingsMessage, "danger", info.title, info.message);
@@ -127,7 +132,7 @@
     if (turningOn) {
       const ok = await UI.confirm({
         title: "Ligar a automação?",
-        message: "A partir de agora o dispensador abre o compartimento do dia em cada horário programado. Confirme que os servos foram testados e que a bomba está desconectada.",
+        message: "A partir de agora, em cada horário programado, o dispensador abre o compartimento do dia (cápsulas) e liga a bomba pelo relé (líquidos). Confirme que os servos e a bomba foram testados.",
         confirmText: "Ligar automação"
       });
       if (!ok) return;

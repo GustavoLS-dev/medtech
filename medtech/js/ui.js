@@ -30,7 +30,7 @@ const UI = (function () {
   const DOSE_STATES = {
     pending:          { label: "Pendente",               tone: "neutral", help: "O horário ainda não chegou." },
     attempt:          { label: "Tentativa registrada",   tone: "info",    help: "O dispositivo começou o acionamento, mas ainda não informou o resultado." },
-    actuated:         { label: "Acionamento realizado",  tone: "violet",  help: "O dispositivo informou que abriu e fechou a gaveta. Isso não prova que o medicamento foi retirado." },
+    actuated:         { label: "Acionamento realizado",  tone: "violet",  help: "O dispositivo informou que abriu e fechou a gaveta ou ligou a bomba pelo tempo configurado. Isso não prova que o medicamento foi retirado." },
     user_confirmed:   { label: "Retirada confirmada",    tone: "success", help: "Você confirmou no site que retirou o medicamento (confirmação manual, sem sensor)." },
     sensor_confirmed: { label: "Liberação por sensor",   tone: "success", help: "Exige sensor no compartimento. O dispensador atual não tem sensor, então este estado ainda não é usado." },
     failed:           { label: "Falha",                  tone: "danger",  help: "O dispositivo informou um erro ou reiniciou durante o acionamento." },

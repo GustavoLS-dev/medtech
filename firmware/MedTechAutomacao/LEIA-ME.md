@@ -4,20 +4,27 @@ Este firmware automatiza o organizador: **7 compartimentos, um por dia** (servo 
 
 Nada precisa ser digitado no terminal: a automação é ligada e desligada no site, na página **Programação**. O Monitor Serial serve só para diagnóstico.
 
-**Liberar agora (versão 2.1):** na página **Hoje**, cada período ainda não tratado tem o botão **Liberar agora**. O pedido vai para o Supabase (vale por 2 minutos); o ESP32 o recebe na próxima consulta (a cada 15 s), abre o compartimento do dia, espera o tempo configurado, fecha e registra aquele período. No horário normal ele não abre de novo. O pedido funciona mesmo com a automação desligada, porque é um comando explícito do usuário; as demais proteções (relógio, agenda, PCA9685, duplicidade) continuam valendo. No Monitor Serial aparece como `[PEDIDO]` e no LCD como `Pedido do site`.
+**Líquidos e bomba (versão 2.2, requer `supabase/04`):** cada medicamento é **cápsula** ou **líquido** (escolhido no cadastro). No horário de um período, se houver líquido, o relé (GPIO 18) **liga a bomba** pelo tempo configurado no site (**padrão: 5 s**, máximo 30 s); se houver cápsula, o compartimento do dia abre. Período só com líquido **não abre a gaveta**; período só com cápsula **não liga a bomba**. Com os dois, a bomba roda primeiro e depois a gaveta abre.
+
+**Liberar agora por medicamento (versão 2.2):** nas páginas **Hoje** e **Medicamentos**, todo medicamento tem o botão **Liberar agora**, a qualquer hora (mesmo pausado ou fora do dia). Líquido liga a bomba; cápsula abre o compartimento de hoje (ou do próximo dia em que ela está programada). Isso **não** conta como o horário programado: o horário normal continua valendo. Esse pedido só é executado com internet, porque o servidor autoriza cada pedido uma única vez.
+
+**Buzzer (versão 2.3):** ligado no **GPIO 23** (+ no pino, − no GND). Toca **bipes por 10 s** no começo de toda liberação real: horário programado, "Liberar agora" e "Liberar período". Os comandos `TESTE` e `BOMBA` ficam em silêncio, e `PARAR` cala o buzzer. Em `config.h`: `BUZZER_ATIVO` (`true` para buzzer ativo; `false` para passivo, em que o ESP32 gera o tom), `BUZZER_TOTAL_MS` (10 s) e `BUZZER_BIPE_MS` (0 = som contínuo).
+
+**Liberar período (versão 2.1):** na página **Hoje**, cada período ainda não tratado tem o botão **Liberar período**. O pedido vai para o Supabase (vale por 2 minutos); o ESP32 o recebe na próxima consulta (a cada 15 s), abre o compartimento do dia, espera o tempo configurado, fecha e registra aquele período. No horário normal ele não abre de novo. O pedido funciona mesmo com a automação desligada, porque é um comando explícito do usuário; as demais proteções (relógio, agenda, PCA9685, duplicidade) continuam valendo. No Monitor Serial aparece como `[PEDIDO]` e no LCD como `Pedido do site`.
 
 Com o `03` instalado, o site também se atualiza **em tempo real**: a cor do medicamento muda no momento em que o aparelho registra.
 
 Os firmwares `MedTechComunicacao` e `MedTechCalibracao`, na Área de Trabalho, continuam intactos. Use o de calibração para medir as posições das portas.
 
-**A bomba nunca é acionada.** O relé (GPIO 18) fica em HIGH desde a primeira linha do `setup()` e é reforçado a cada volta do `loop()`. Não existe comando nem função que o ligue.
+**Bomba:** o relé (GPIO 18) fica em HIGH (desligado) desde a primeira linha do `setup()` e é reforçado a cada volta do `loop()`, **exceto** durante a fase `BOMBEANDO` de um acionamento. Essa fase dura o tempo do site e nunca passa de `TEMPO_BOMBA_MAX_S` (30 s, em `config.h`). `PARAR`, uma falha ou um reinício desligam a bomba na hora.
 
 ## Como funciona
 
 ```
-Site (Medicamentos + Programação) ──► Supabase ◄── ESP32 (consulta a cada 30 s)
+Site (Medicamentos + Programação) ──► Supabase ◄── ESP32 (consulta a cada 15 s)
                                                      │ relógio NTP (Brasília, UTC-3)
                                                      ▼
+                                         relé (GPIO 18) ──► bomba (líquidos)
                                          PCA9685 ──► servo do dia
 ```
 
@@ -68,7 +75,9 @@ Se algum valor de `COMPARTIMENTOS` for inválido (canal repetido, canal maior qu
 | `AJUDA` | Lista os comandos. |
 | `STATUS` | Wi-Fi, relógio, automação, PCA9685, fila, agenda da semana e próximo horário. |
 | `TESTE n` | Abre o compartimento do dia `n` (1 = segunda … 7 = domingo), espera o tempo configurado e fecha. Não registra dose. |
-| `PARAR` | Corta o sinal de todos os servos. **A porta pode ficar aberta:** apoie o mecanismo. |
+| `BUZZER` | Toca o aviso de liberação (bipes por 10 s). Não move nada. |
+| `BOMBA` | Liga a bomba pelo tempo configurado no site e desliga. Não registra dose. Use para medir quanto líquido sai nesse tempo. |
+| `PARAR` | Desliga a bomba e corta o sinal de todos os servos. **A porta pode ficar aberta:** apoie o mecanismo. |
 | `SINCRONIZAR` | Antecipa a consulta ao servidor. |
 
 ## Passo a passo 1: comunicação e servo manual (bomba desconectada)
@@ -77,13 +86,13 @@ Se algum valor de `COMPARTIMENTOS` for inválido (canal repetido, canal maior qu
 2. Grave o firmware e abra o Monitor Serial. O esperado é:
 
    ```
-   [MedTech] medtech-auto-2.0.0. Bomba sempre desligada.
+   [MedTech] medtech-auto-2.2.0. Bomba desligada ate um horario ou pedido com liquido.
    [PCA] PCA9685 pronto; todos os canais sem sinal.
    [MedTech] Automacao DESLIGADA no site (ultima agenda salva). Digite AJUDA para os comandos.
    [WiFi] Conectando; credenciais omitidas.
    [WiFi] Conectado.
    [API] medtech_device_agenda: HTTP 200
-   [AGENDA] 0 horario(s) na semana; automacao DESLIGADA no site; gaveta aberta por 60 s.
+   [AGENDA] 0 horario(s) na semana; automacao DESLIGADA no site; gaveta aberta por 60 s; bomba ligada por 5 s.
    ```
 
    LCD: `MedTech / Iniciando` → `MedTech / Conectando WiFi` → `Sistema conect. / Auto DESLIGADA`.
@@ -102,21 +111,21 @@ Se algum valor de `COMPARTIMENTOS` for inválido (canal repetido, canal maior qu
 
 ## Passo a passo 2: automação pelo site
 
-1. Em **Medicamentos**, cadastre um item de teste (use só objetos de teste, nunca medicamentos) com o **dia de hoje** e o período **Tarde**, por exemplo.
+1. Em **Medicamentos**, cadastre um item de teste do tipo **Cápsula** (use só objetos de teste, nunca medicamentos) com o **dia de hoje** e o período **Tarde**, por exemplo.
 2. Em **Programação**, ajuste o horário da **Tarde** para **3 minutos à frente** e salve. Depois clique em **Ligar automação**.
-3. Em até 30 s, o Monitor Serial mostra:
+3. Em até 15 s, o Monitor Serial mostra:
 
    ```
    [API] medtech_device_agenda: HTTP 200
-   [AGENDA] 1 horario(s) na semana; automacao LIGADA no site; gaveta aberta por 60 s.
-     Seg Tarde 14:03  servo 0  1 medicamento(s)
+   [AGENDA] 1 horario(s) na semana; automacao LIGADA no site; gaveta aberta por 60 s; bomba ligada por 5 s.
+     Seg Tarde 14:03  servo 0  1 capsula(s)  0 liquido(s)
    ```
 
    LCD: `Agenda atualiz. / 1 horario(s)` e depois `Sistema conect. / Prox Seg 14:03 T`.
 4. No horário:
 
    ```
-   [AGENDA] Seg Tarde 14:03 (1 medicamento(s)): iniciando.
+   [AGENDA] Seg Tarde 14:03 (1 capsula(s), 0 liquido(s)): iniciando.
    [API] medtech_device_slot_report: HTTP 200
    [SERVO] Abrindo compartimento Seg (canal 0, 0 -> 90 graus).
    [SERVO] Aberto; fecha em 60 s.
@@ -127,6 +136,14 @@ Se algum valor de `COMPARTIMENTOS` for inválido (canal repetido, canal maior qu
 
    LCD: `Horario program. / Seg - Tarde` → `Abrindo gaveta / Seg - Tarde` → `Gaveta aberta / Seg fecha em 60s` → `Fechando gaveta / Seg` → `Gaveta fechada / Registrando...`.
 5. No site, a página **Hoje** mostra a Tarde como "Acionamento realizado", e o **Relatório** lista o medicamento no dia de hoje. O botão **Retirei** é opcional: ele registra que alguém pegou os medicamentos.
+
+## Passo a passo 3: bomba e "Liberar agora"
+
+1. Ligue a bomba ao relé com um copo de água (nunca medicamento real nos testes). Digite `BOMBA`: o esperado é `[BOMBA] Ligada por 5 s.` e, 5 s depois, `[BOMBA] Desligada.`. LCD: `Bomba ligada / Teste da bomba`. Meça o volume e ajuste o **tempo da bomba** em **Programação**.
+2. Em **Medicamentos**, cadastre um item **Líquido** e outro **Cápsula**.
+3. Toque em **Liberar agora** no líquido: em até 15 s aparece `[PEDIDO] Medicamento liquido: bomba.`, a bomba liga e desliga, e o site mostra "Acionamento realizado" na página **Hoje**, no quadro **Liberar agora**.
+4. Toque em **Liberar agora** na cápsula: o compartimento do dia abre e fecha. **A bomba não liga.**
+5. Num período com os dois tipos, no horário a bomba liga primeiro e depois a gaveta abre. Num período só com líquido, a gaveta **não** abre.
 
 Os trechos acima mostram o que o código imprime. **Eles não são registros de um teste físico já realizado.**
 
@@ -140,7 +157,8 @@ Os trechos acima mostram o que o código imprime. **Eles não são registros de 
 - **Sem RTC:** depois de uma queda de energia, sem internet, o aparelho não sabe a hora e não abre nada.
 - **Horário de Brasília fixo (UTC-3):** se o horário de verão voltar, `FUSO_POSIX` em `config.h` e `SP_OFFSET` em `medtech/js/data.js` precisam mudar.
 - **Relé no reset:** o software só controla o GPIO 18 depois que o `setup()` começa. Confirme na montagem o estado inativo do módulo durante o boot.
-- **Bomba:** nenhuma dispensação de líquidos foi implementada.
+- **Bomba por tempo, não por volume:** o firmware só controla quanto tempo o relé fica ligado. O volume depende da bomba, da mangueira e do nível do reservatório; meça com `BOMBA`. Há **uma** bomba: todos os medicamentos líquidos de um período saem pelo mesmo acionamento.
+- **"Liberar agora" de um medicamento interrompido por reinício:** a dose fica como "Tentativa registrada" (não há registro local desse pedido para virar "falha").
 
 ## Checklist de testes
 
@@ -160,4 +178,4 @@ Marque somente o que foi **executado no hardware real**.
 | 10 | Perda de conexão | Desligue o roteador antes de um horário: abre pela agenda local e registra ao reconectar. Desligue o ESP32 por mais de 10 min passando por um horário: aparece "Não aberta (atraso)" e não abre. |
 | 11 | Alteração e cancelamento | Desligue a automação ou remova o período do medicamento antes do horário: depois de 30 s, não abre. Mude o horário da Tarde: vale o novo. |
 | 12 | Relatório | "Tentativa registrada", "Acionamento realizado", "Retirada confirmada" (só depois de Retirei), "Falha" e "Não aberta (atraso)" aparecem separados por dia e período. |
-| 13 | Bomba | Durante todos os testes, a bomba fica desconectada e o relé em repouso (GPIO 18 em HIGH). |
+| 13 | Bomba | Nos passos 1 e 2, a bomba fica desconectada. No passo 3, ela só liga em `BOMBA`, em "Liberar agora" de um líquido e nos horários com líquido, e nunca por mais que o tempo configurado. |

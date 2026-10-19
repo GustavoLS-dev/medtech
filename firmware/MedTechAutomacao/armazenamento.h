@@ -9,7 +9,7 @@
 
 using MedTechConfig::NUM_COMPARTIMENTOS;
 
-constexpr uint8_t VERSAO_DADOS = 2;  // mude se as estruturas abaixo mudarem
+constexpr uint8_t VERSAO_DADOS = 3;  // mude se as estruturas abaixo mudarem
 constexpr int MAX_HORARIOS_AGENDA = 21;  // 7 dias x 3 periodos
 constexpr int MAX_REGISTROS = 128;
 constexpr int MAX_FILA = 24;
@@ -17,19 +17,25 @@ constexpr int MAX_FILA = 24;
 // ---- Agenda ----
 enum Periodo : uint8_t { MANHA = 0, TARDE = 1, NOITE = 2, SEM_PERIODO = 0xFF };
 
+// Sem bytes de preenchimento: agendasIguais() compara a memoria com memcmp.
 struct Horario {
+  uint32_t atualizadoEm; // epoch da ultima alteracao no site que afeta este horario
+  uint16_t minutos;      // minutos desde 00:00 (Brasilia)
   uint8_t diaSemana;     // 0 = domingo ... 6 = sabado (padrao do relogio e do banco)
   uint8_t periodo;       // Periodo
-  uint16_t minutos;      // minutos desde 00:00 (Brasilia)
-  uint8_t medicamentos;  // quantos medicamentos o horario tem (so diagnostico)
-  uint32_t atualizadoEm; // epoch da ultima alteracao no site que afeta este horario
+  uint8_t medicamentos;  // quantos medicamentos o horario tem
+  uint8_t solidos;       // capsulas: abrem a gaveta do dia
+  uint8_t liquidos;      // liquidos: ligam a bomba
+  uint8_t reservado;
 };
+static_assert(sizeof(Horario) == 12, "Horario nao pode ter preenchimento.");
 
 struct Agenda {
   uint8_t versao;
   bool valida;
   bool automacao;          // ligada/desligada no site
   uint16_t tempoAbertoS;   // tempo com a gaveta aberta (site)
+  uint16_t tempoBombaS;    // tempo com a bomba ligada (site)
   uint32_t recebidaEm;     // epoch da ultima sincronizacao com sucesso
   uint8_t total;
   Horario itens[MAX_HORARIOS_AGENDA];
@@ -61,6 +67,7 @@ struct Evento {
   uint32_t horario;      // 0 para eventos do aparelho
   uint32_t ocorridoEm;
   char detalhe[32];
+  char pedido[37];       // id do pedido "Liberar agora" de um medicamento; vazio nos demais
 };
 
 struct Fila {
@@ -117,7 +124,8 @@ void gravarRegistro(uint32_t horario, uint8_t periodo, uint8_t indice, EstadoReg
 }
 
 // ---- Fila de eventos ----
-void enfileirarEvento(TipoEvento tipo, uint8_t periodo, uint32_t horario, uint32_t ocorridoEm, const char *detalhe) {
+void enfileirarEvento(TipoEvento tipo, uint8_t periodo, uint32_t horario, uint32_t ocorridoEm, const char *detalhe,
+                      const char *pedido = nullptr) {
   if (fila.total >= MAX_FILA) {
     // Fila cheia (muito tempo sem internet): descarta o evento mais antigo.
     memmove(&fila.itens[0], &fila.itens[1], sizeof(Evento) * (MAX_FILA - 1));
@@ -128,6 +136,7 @@ void enfileirarEvento(TipoEvento tipo, uint8_t periodo, uint32_t horario, uint32
   e = {};
   e.tipo = tipo; e.periodo = periodo; e.horario = horario; e.ocorridoEm = ocorridoEm;
   strlcpy(e.detalhe, detalhe ? detalhe : "", sizeof(e.detalhe));
+  strlcpy(e.pedido, pedido ? pedido : "", sizeof(e.pedido));
   salvarFila();
 }
 

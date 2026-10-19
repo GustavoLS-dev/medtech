@@ -7,7 +7,11 @@
 (function () {
   const REFRESH_MS = 15000;
   const list = document.getElementById("today-list");
+  const releaseList = document.getElementById("release-list");
   const pageMessage = document.getElementById("page-message");
+
+  let medications = [];
+  let settings = Data.DEFAULT_SETTINGS;
 
   function setStat(id, value) {
     const el = document.getElementById(id);
@@ -39,7 +43,38 @@
       return '<span class="badge badge--info"><span class="spinner spinner--sm" aria-hidden="true"></span>Aguardando o dispensador…</span>';
     }
     return '<button type="button" class="btn btn--secondary btn--sm" data-dispense="' + UI.escapeHtml(s.period.key) + '">' +
-      Icons.get("package") + "Liberar agora</button>";
+      Icons.get("package") + "Liberar período</button>";
+  }
+
+  // "Liberar agora" de cada medicamento, com o resultado da última liberação manual de hoje.
+  function renderRelease(medications, requests, doses) {
+    if (medications.length === 0) {
+      releaseList.innerHTML = UI.emptyState("pill", "Nenhum medicamento cadastrado", "Cadastre um medicamento na página Medicamentos.");
+      return;
+    }
+    const manual = Data.latestManual(doses);
+    releaseList.innerHTML = '<ul class="item-list">' + medications.map(function (m) {
+      const medForm = Data.formOf(m.form);
+      const dose = manual[m.id];
+      const state = dose ? Data.doseState(dose) : null;
+      const waiting = requests.some(function (r) { return r.medication_id === m.id; });
+      let action;
+      if (waiting) {
+        action = '<span class="badge badge--info"><span class="spinner spinner--sm" aria-hidden="true"></span>Aguardando o dispensador…</span>';
+      } else {
+        action = (state === "actuated" ? '<button type="button" class="btn btn--primary btn--sm" data-confirm-dose="' + UI.escapeHtml(dose.id) + '">Retirei</button>' : "") +
+          '<button type="button" class="btn btn--secondary btn--sm" data-release="' + UI.escapeHtml(m.id) + '">' +
+          Icons.get(medForm.icon) + "Liberar agora</button>";
+      }
+      return '<li class="item" data-id="' + UI.escapeHtml(m.id) + '">' +
+        '<div class="item__main">' +
+          '<span class="slot-tag" aria-hidden="true">' + Icons.get(medForm.icon) + "</span>" +
+          '<div><p class="item__title">' + UI.escapeHtml(m.name) + "</p>" +
+          '<p class="item__meta">' + UI.escapeHtml(medForm.label + " · sai pela " + medForm.exit) +
+          (dose ? " · última liberação manual " + UI.escapeHtml(Data.spParts(new Date(dose.scheduled_for)).time) : "") + "</p></div>" +
+        "</div>" +
+        '<div class="item__actions">' + (state ? UI.doseBadge(state) : "") + action + "</div></li>";
+    }).join("") + "</ul>";
   }
 
   function renderToday(slots, requests, hasMedications) {
@@ -84,15 +119,18 @@
         Data.getSettings(),
         Data.listActiveRequests()
       ]);
-      const settings = results[3];
-      const slots = Data.todaySlots(results[0], results[1], settings);
+      medications = results[0];
+      settings = results[3];
+      const slots = Data.todaySlots(medications, results[1], settings);
       UI.clearAlert(pageMessage);
       renderStats(slots);
-      renderToday(slots, results[4], results[0].length > 0);
+      renderToday(slots, results[4], medications.length > 0);
+      renderRelease(medications, results[4], results[1]);
       renderDevice(results[2], settings);
     } catch (error) {
       const info = Data.describeError(error);
       list.innerHTML = "";
+      releaseList.innerHTML = "";
       UI.showAlert(pageMessage, "danger", info.title, info.message);
     }
   }
@@ -101,7 +139,7 @@
     const period = Data.periodOf(button.getAttribute("data-dispense"));
     const ok = await UI.confirm({
       title: "Liberar a " + period.label.toLowerCase() + " agora?",
-      message: "O dispensador abre o compartimento de hoje em até 15 segundos, deixa aberto pelo tempo configurado e fecha. Quando o horário normal chegar, ele não abre de novo.",
+      message: "Em até 15 segundos o dispensador libera todos os medicamentos deste período: liga a bomba se houver líquido e abre o compartimento de hoje se houver cápsula. Quando o horário normal chegar, ele não libera de novo.",
       confirmText: "Liberar agora"
     });
     if (!ok) return;
@@ -116,6 +154,30 @@
       UI.toast(info.title + ". " + info.message, "danger");
     }
   }
+
+  releaseList.addEventListener("click", async function (event) {
+    const release = event.target.closest("button[data-release]");
+    const confirmDose = event.target.closest("button[data-confirm-dose]");
+    const button = release || confirmDose;
+    if (!button) return;
+    const med = medications.find(function (m) { return m.id === button.closest(".item").getAttribute("data-id"); });
+    if (!med) return;
+    const ok = await UI.confirm(release
+      ? Object.assign({ confirmText: "Liberar agora" }, Data.releaseText(med, settings))
+      : { title: "Você retirou " + med.name + "?", message: "Confirme somente depois de pegar o medicamento no dispensador.", confirmText: "Sim, retirei" });
+    if (!ok) return;
+    UI.setButtonLoading(button, true);
+    try {
+      if (release) await Data.requestMedication(med.id);
+      else await Data.confirmDose(button.getAttribute("data-confirm-dose"));
+      UI.toast(release ? "Pedido enviado ao dispensador." : "Retirada confirmada.", "success");
+      await load();
+    } catch (error) {
+      UI.setButtonLoading(button, false);
+      const info = Data.describeError(error);
+      UI.toast(info.title + ". " + info.message, "danger");
+    }
+  });
 
   list.addEventListener("click", async function (event) {
     const dispense = event.target.closest("button[data-dispense]");

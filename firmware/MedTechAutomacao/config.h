@@ -3,12 +3,12 @@
 
 // ============================================================================
 // Configuracao do dispensador. TODOS os ajustes de hardware ficam aqui.
-// Horarios de manha/tarde/noite, tempo aberto e automacao sao definidos no site
-// (pagina Programacao) e chegam pela agenda.
+// Horarios de manha/tarde/noite, tempo aberto, tempo da bomba e automacao sao
+// definidos no site (pagina Programacao) e chegam pela agenda.
 // ============================================================================
 namespace MedTechConfig {
 
-constexpr char FIRMWARE_VERSION[] = "medtech-auto-2.1.0";
+constexpr char FIRMWARE_VERSION[] = "medtech-auto-2.3.0";
 
 // Organizador semanal: um compartimento (servo) por dia.
 // Indice 0 = segunda ... 6 = domingo (mesma ordem do site).
@@ -37,6 +37,22 @@ constexpr Compartimento COMPARTIMENTOS[NUM_COMPARTIMENTOS] = {
 constexpr uint16_t TEMPO_ABERTO_PADRAO_S = 60;
 constexpr uint16_t TEMPO_ABERTO_MIN_S = 5;
 constexpr uint16_t TEMPO_ABERTO_MAX_S = 300;
+
+// Bomba (medicamentos liquidos): tempo com o rele ligado, vindo do site
+// (padrao 5 s). Valores fora deste limite sao recusados; o maximo vale como
+// trava de seguranca mesmo se a agenda vier errada.
+constexpr uint16_t TEMPO_BOMBA_PADRAO_S = 5;
+constexpr uint16_t TEMPO_BOMBA_MIN_S = 1;
+constexpr uint16_t TEMPO_BOMBA_MAX_S = 30;
+
+// Buzzer: avisa que o medicamento esta sendo liberado (horario, "Liberar agora"
+// e "Liberar periodo"). Os comandos TESTE e BOMBA ficam em silencio.
+//   BUZZER_ATIVO: true = buzzer ativo (apita sozinho com tensao);
+//                 false = passivo (o ESP32 gera o tom em BUZZER_FREQ_HZ).
+constexpr bool BUZZER_ATIVO = true;
+constexpr uint32_t BUZZER_TOTAL_MS = 10000;  // tempo total do aviso
+constexpr uint32_t BUZZER_BIPE_MS = 500;     // bipe ligado / desligado (0 = som continuo)
+constexpr uint16_t BUZZER_FREQ_HZ = 2700;    // so para o buzzer passivo
 
 // Movimento suave: passo em graus e intervalo entre passos (sem delay longo).
 constexpr uint8_t RAMPA_PASSO_GRAUS = 3;

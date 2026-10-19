@@ -15,15 +15,16 @@ Feito apenas com **HTML, CSS e JavaScript puro**. Não usa Vite, frameworks nem 
 | Layout, identidade visual e responsividade | ✅ Pronto |
 | Login, cadastro, confirmação de e-mail e recuperação de senha | ✅ Supabase Auth |
 | Proteção das páginas privadas (verificação de sessão) | ✅ Pronto |
-| Tabelas e políticas RLS no Supabase | ✅ [`../supabase/`](../supabase/LEIA-ME.md): execute o 01 e depois o 02 no SQL Editor |
+| Tabelas e políticas RLS no Supabase | ✅ [`../supabase/`](../supabase/LEIA-ME.md): execute do 01 ao 04, em ordem, no SQL Editor |
 | Organizador semanal: 7 compartimentos (servo 0 = segunda … 6 = domingo) × manhã/tarde/noite | ✅ Páginas Medicamentos e Programação |
 | Automação ligada/desligada pelo site (sem terminal) | ✅ Página Programação |
-| "Liberar agora" e atualização em tempo real | ✅ Página Hoje (requer `supabase/03` e firmware 2.1) |
+| "Liberar período" e atualização em tempo real | ✅ Página Hoje (requer `supabase/03` e firmware 2.1) |
+| Medicamento líquido (bomba pelo relé) e "Liberar agora" em cada medicamento | ✅ Páginas Medicamentos, Hoje e Programação (requer `supabase/04` e firmware 2.2) |
 | Vinculação e status do ESP32 | ✅ Página Dispositivo |
 | Horários do dia, relatório diário e confirmação de retirada | ✅ Páginas Hoje e Relatório |
 | Firmware com automação dos servos | ✅ [`../firmware/MedTechAutomacao`](../firmware/MedTechAutomacao/LEIA-ME.md), **sem teste físico registrado** |
 | Sensor de liberação | ❌ Não existe no hardware atual |
-| Bomba | ❌ Nunca acionada (sem especificação) |
+| Bomba | ✅ Ligada por tempo (1 a 30 s, definido no site) nos horários e pedidos com líquido, **sem teste físico registrado** |
 
 O repositório (`tcc/`) tem três partes:
 
@@ -41,7 +42,8 @@ tcc/
 
 ```
 medtech/
-├── index.html              Login
+├── index.html              Tela de abertura (vai para o painel ou para o login)
+├── entrar.html             Login
 ├── cadastro.html           Criação de conta
 ├── confirmacao.html        Orientação após o cadastro / retorno do link do e-mail
 ├── recuperar-senha.html    Pedir o link de recuperação
@@ -198,7 +200,7 @@ A interface separa o que o dispositivo **informou** do que **realmente aconteceu
 |---|---|
 | Pendente | O horário ainda não chegou. |
 | Tentativa registrada | O dispositivo começou o acionamento, mas ainda não informou o resultado. |
-| Acionamento realizado | O dispositivo informou que abriu e fechou a gaveta. Isso não prova que o medicamento foi retirado. |
+| Acionamento realizado | O dispositivo informou que abriu e fechou a gaveta ou ligou a bomba. Isso não prova que o medicamento foi retirado. |
 | Retirada confirmada | O usuário tocou em "Retirei" no site (confirmação manual). |
 | Liberação por sensor | Exige sensor. O hardware atual não tem, então este estado ainda não é usado. |
 | Falha | O dispositivo informou um erro ou reiniciou durante o acionamento. |

@@ -86,9 +86,8 @@
       return;
     }
     box.innerHTML = '<ul class="item-list">' + events.map(function (e) {
-      const slot = e.period && e.scheduled_for
-        ? Data.periodOf(e.period).label + " de " + UI.formatDate(new Date(e.scheduled_for), { weekday: "short", hour: "2-digit", minute: "2-digit" })
-        : "";
+      const when = e.scheduled_for ? UI.formatDate(new Date(e.scheduled_for), { weekday: "short", hour: "2-digit", minute: "2-digit" }) : "";
+      const slot = !when ? "" : e.period ? Data.periodOf(e.period).label + " de " + when : "Liberação manual de " + when;
       return '<li class="item"><div>' +
         '<span class="badge badge--' + (EVENT_TONES[e.event_type] || "neutral") + '">' + UI.escapeHtml(EVENT_LABELS[e.event_type] || e.event_type) + "</span>" +
         (slot ? ' <span class="text-xs text-muted">' + UI.escapeHtml(slot) + "</span>" : "") +

@@ -1,32 +1,39 @@
 #pragma once
 // Agenda e acionamento do organizador semanal.
 //
-// Em cada horario (dia + periodo) com medicamento, o compartimento do dia
-// abre, fica aberto pelo tempo definido no site (padrao 60 s) e fecha.
+// Em cada horario (dia + periodo) com medicamento:
+//  - se houver liquido, o rele liga a bomba pelo tempo do site (padrao 5 s);
+//  - se houver capsula, o compartimento do dia abre, fica aberto pelo tempo
+//    do site (padrao 60 s) e fecha.
+// O "Liberar agora" de um medicamento faz so a parte dele (bomba OU gaveta).
 //
 // Regras de seguranca:
 //  - so executa com automacao LIGADA no site, relogio sincronizado (NTP) e
 //    conferido com o servidor, agenda valida (< 24 h sem sincronizar) e PCA9685 pronto;
-//  - cada horario e gravado na flash ANTES de mover o servo: depois de uma
-//    reinicializacao ele nunca e executado de novo;
+//  - cada horario e gravado na flash ANTES de mover o servo ou ligar a bomba:
+//    depois de uma reinicializacao ele nunca e executado de novo;
 //  - com internet, o servidor tambem confirma que o horario ainda nao foi tratado;
-//  - horarios atrasados mais que TOLERANCIA_ATRASO_S nao abrem a gaveta;
+//  - horarios atrasados mais que TOLERANCIA_ATRASO_S nao sao liberados;
 //  - um servo por vez, movimento em rampa, sem delay() longo;
-//  - a bomba nunca e acionada.
+//  - a bomba so liga na fase BOMBEANDO, nunca mais que TEMPO_BOMBA_MAX_S.
 #include <time.h>
 #include "hardware.h"
 #include "api.h"
 
 using namespace MedTechConfig;
 
-enum class Fase : uint8_t { LIVRE, ABRINDO, ABERTO, FECHANDO, ASSENTANDO };
+enum class Fase : uint8_t { LIVRE, BOMBEANDO, ABRINDO, ABERTO, FECHANDO, ASSENTANDO };
 
 struct Acionamento {
   Fase fase = Fase::LIVRE;
   bool teste = false;        // TESTE manual ou fechamento de recuperacao: nao registra dose
+  bool bomba = false;        // liga a bomba (liquido) antes de tudo
+  bool gaveta = false;       // abre o compartimento do dia (capsula)
+  char pedido[37] = "";      // "Liberar agora" de um medicamento: id do pedido
   uint8_t indice = 0;        // compartimento do organizador (0 = segunda ... 6 = domingo)
   uint8_t periodo = SEM_PERIODO;
   uint32_t horario = 0;
+  uint32_t tempoBombaMs = TEMPO_BOMBA_PADRAO_S * 1000UL;
   uint32_t tempoAbertoMs = TEMPO_ABERTO_PADRAO_S * 1000UL;
   int angulo = 0;
   uint32_t marco = 0;        // millis() do ultimo passo/mudanca de fase
@@ -53,6 +60,12 @@ const Compartimento &dadosCompartimento(uint8_t indice) { return COMPARTIMENTOS[
 uint32_t tempoAbertoMs() {
   uint16_t s = agenda.valida ? agenda.tempoAbertoS : TEMPO_ABERTO_PADRAO_S;
   if (s < TEMPO_ABERTO_MIN_S || s > TEMPO_ABERTO_MAX_S) s = TEMPO_ABERTO_PADRAO_S;
+  return s * 1000UL;
+}
+
+uint32_t tempoBombaMs() {
+  uint16_t s = agenda.valida ? agenda.tempoBombaS : TEMPO_BOMBA_PADRAO_S;
+  if (s < TEMPO_BOMBA_MIN_S || s > TEMPO_BOMBA_MAX_S) s = TEMPO_BOMBA_PADRAO_S;
   return s * 1000UL;
 }
 
@@ -115,15 +128,23 @@ bool moverCompartimento(uint8_t indice, int angulo) {
 }
 
 void finalizar(EstadoRegistro estado, const char *detalhe) {
+  Hardware::bombaDesligada();
   uint32_t agora = time(nullptr);
-  if (!job.teste) {
+  TipoEvento tipo = estado == REG_ACIONADO ? EV_ACIONADO : EV_FALHA;
+  if (job.teste) {
+    // TESTE e fechamento de recuperacao: sem registro.
+  } else if (job.pedido[0]) {
+    // "Liberar agora" de um medicamento: nao e um horario programado.
+    enfileirarEvento(tipo, SEM_PERIODO, 0, agora, detalhe, job.pedido);
+  } else {
     gravarRegistro(job.horario, job.periodo, job.indice, estado);
-    enfileirarEvento(estado == REG_ACIONADO ? EV_ACIONADO : EV_FALHA, job.periodo, job.horario, agora, detalhe);
+    enfileirarEvento(tipo, job.periodo, job.horario, agora, detalhe);
   }
   job.fase = Fase::LIVRE;
 }
 
 void falharAcionamento(const char *detalhe) {
+  Hardware::bombaDesligada();
   Hardware::desligarServos();
   Serial.printf("[SERVO] Falha no compartimento %s: %s. Sinais desligados.\n", NOMES_DIAS[job.indice], detalhe);
   char l2[24];
@@ -150,12 +171,57 @@ void abrirCompartimento(uint8_t indice) {
   job.marco = millis();
   job.fase = Fase::ABRINDO;
   char l2[24];
-  snprintf(l2, sizeof(l2), "%s - %s", NOMES_DIAS[indice], nomePeriodo(job.periodo));
+  snprintf(l2, sizeof(l2), "%s - %s", NOMES_DIAS[indice], job.pedido[0] ? "Pedido" : nomePeriodo(job.periodo));
   avisar("Abrindo gaveta", job.teste ? "Teste manual" : l2, 600000);
   Serial.printf("[SERVO] Abrindo compartimento %s (canal %u, %u -> %u graus).\n", NOMES_DIAS[indice],
                 c.canal, c.anguloFechado, c.anguloAberto);
   // Primeiro pulso na posicao fechada: o servo parte do repouso conhecido.
   if (!moverCompartimento(indice, job.angulo)) falharAcionamento("falha_i2c");
+}
+
+// ---- Buzzer: aviso de liberacao, sem bloquear o loop ----
+uint32_t buzzerInicio = 0;
+bool buzzerTocando = false, buzzerSomLigado = false;
+
+void tocarBuzzer() {
+  buzzerInicio = millis();
+  buzzerTocando = true;
+  buzzerSomLigado = true;
+  Hardware::buzzerSom(true);
+}
+
+void pararBuzzer() {
+  buzzerTocando = false;
+  buzzerSomLigado = false;
+  Hardware::buzzerSom(false);
+}
+
+// Chamada a cada volta do loop: alterna os bipes e desliga apos BUZZER_TOTAL_MS.
+void atualizarBuzzer() {
+  if (!buzzerTocando) return;
+  uint32_t passou = millis() - buzzerInicio;
+  if (passou >= BUZZER_TOTAL_MS) { pararBuzzer(); return; }
+  bool ligado = BUZZER_BIPE_MS == 0 || (passou / BUZZER_BIPE_MS) % 2 == 0;
+  if (ligado != buzzerSomLigado) { buzzerSomLigado = ligado; Hardware::buzzerSom(ligado); }
+}
+
+// Comeca o acionamento ja configurado em job: primeiro a bomba (se houver
+// liquido), depois a gaveta (se houver capsula). Liberacoes reais tocam o buzzer.
+void iniciarAcionamento() {
+  if (!job.teste) tocarBuzzer();
+  if (!job.bomba) {
+    if (job.gaveta) abrirCompartimento(job.indice);
+    else finalizar(REG_ACIONADO, nullptr);
+    return;
+  }
+  job.tempoBombaMs = tempoBombaMs();
+  job.marco = millis();
+  job.fase = Fase::BOMBEANDO;
+  Hardware::ligarBomba();
+  char l2[24];
+  snprintf(l2, sizeof(l2), "Liquido %lus", (unsigned long)(job.tempoBombaMs / 1000));
+  avisar("Bomba ligada", job.teste ? "Teste da bomba" : l2, job.tempoBombaMs + 1000);
+  Serial.printf("[BOMBA] Ligada por %lu s.\n", (unsigned long)(job.tempoBombaMs / 1000));
 }
 
 void fecharCompartimento() {
@@ -170,6 +236,18 @@ void atualizarAcionamento() {
   const Compartimento &c = dadosCompartimento(job.indice);
   switch (job.fase) {
     case Fase::LIVRE: return;
+    case Fase::BOMBEANDO: {
+      // Trava extra: nunca passa do maximo, mesmo com tempoBombaMs corrompido.
+      uint32_t limite = TEMPO_BOMBA_MAX_S * 1000UL;
+      if (job.tempoBombaMs < limite) limite = job.tempoBombaMs;
+      if (millis() - job.marco < limite) return;
+      Hardware::bombaDesligada();
+      Serial.println("[BOMBA] Desligada.");
+      if (job.gaveta) { abrirCompartimento(job.indice); return; }
+      avisar("Bomba desligada", job.teste ? "Teste concluido" : "Registrando...", 5000);
+      finalizar(REG_ACIONADO, nullptr);
+      return;
+    }
     case Fase::ABRINDO:
       if (passoRampa(c.anguloAberto)) {
         job.fase = Fase::ABERTO; job.marco = millis();
@@ -198,6 +276,8 @@ void atualizarAcionamento() {
 
 // Interrompe tudo (comando PARAR). Nao comanda retorno: a porta pode ficar aberta.
 void pararAcionamento() {
+  pararBuzzer();
+  Hardware::bombaDesligada();
   Hardware::desligarServos();
   if (job.fase != Fase::LIVRE) {
     Serial.println("[SERVO] Interrompido. Sinais desligados; confira a gaveta manualmente.");
@@ -209,8 +289,8 @@ void pararAcionamento() {
 void processarHorario(const Horario &h, uint32_t horario, bool pedido = false) {
   uint32_t agora = time(nullptr);
   uint8_t indice = indiceDoDia(h.diaSemana);
-  Serial.printf("[%s] %s %s %02u:%02u (%u medicamento(s)): iniciando.\n", pedido ? "PEDIDO" : "AGENDA",
-                NOMES_DIAS[indice], nomePeriodo(h.periodo), h.minutos / 60, h.minutos % 60, h.medicamentos);
+  Serial.printf("[%s] %s %s %02u:%02u (%u capsula(s), %u liquido(s)): iniciando.\n", pedido ? "PEDIDO" : "AGENDA",
+                NOMES_DIAS[indice], nomePeriodo(h.periodo), h.minutos / 60, h.minutos % 60, h.solidos, h.liquidos);
   char l2[24];
   snprintf(l2, sizeof(l2), "%s - %s", NOMES_DIAS[indice], nomePeriodo(h.periodo));
   avisar(pedido ? "Pedido do site" : "Horario program.", l2, 30000);
@@ -243,12 +323,16 @@ void processarHorario(const Horario &h, uint32_t horario, bool pedido = false) {
     enfileirarEvento(EV_TENTATIVA, h.periodo, horario, agora, "modo_offline");
   }
 
-  // 3. Movimento (continua em atualizarAcionamento).
+  // 3. Bomba e/ou gaveta (continua em atualizarAcionamento). Sem a contagem
+  //    (horario desconhecido na agenda), abre a gaveta como antes.
   job = Acionamento();
   job.teste = false;
   job.periodo = h.periodo;
   job.horario = horario;
-  abrirCompartimento(indice);
+  job.indice = indice;
+  job.bomba = h.liquidos > 0;
+  job.gaveta = h.solidos > 0 || h.liquidos == 0;
+  iniciarAcionamento();
 }
 
 // Pedido "Liberar agora": abre o compartimento de hoje e registra aquele periodo.
@@ -261,15 +345,58 @@ bool atenderPedido(uint32_t agora) {
     memmove(&pedidos[i], &pedidos[i + 1], sizeof(Pedido) * (totalPedidos - i - 1));
     totalPedidos--;
     if (buscarRegistro(p.horario, p.periodo)) return false;
-    Horario h = {p.diaSemana, p.periodo, 0, 0, 0};
+    Horario h = {};
+    h.diaSemana = p.diaSemana;
+    h.periodo = p.periodo;
     struct tm local; time_t t = p.horario; localtime_r(&t, &local);
     h.minutos = local.tm_hour * 60 + local.tm_min;
     for (int j = 0; j < agenda.total; j++)
-      if (agenda.itens[j].diaSemana == p.diaSemana && agenda.itens[j].periodo == p.periodo) h.medicamentos = agenda.itens[j].medicamentos;
+      if (agenda.itens[j].diaSemana == p.diaSemana && agenda.itens[j].periodo == p.periodo) {
+        h.medicamentos = agenda.itens[j].medicamentos;
+        h.solidos = agenda.itens[j].solidos;
+        h.liquidos = agenda.itens[j].liquidos;
+      }
     processarHorario(h, p.horario, true);
     return true;
   }
   return false;
+}
+
+// "Liberar agora" de um medicamento: so com internet (o servidor autoriza cada
+// pedido uma unica vez). Liquido liga a bomba; capsula abre a gaveta do dia
+// informado. Nao grava registro de horario: o horario programado continua valendo.
+bool atenderPedidoRemedio(uint32_t agora) {
+  if (totalPedidosRemedio == 0 || bloqueioAcionamento(agora)) return false;
+  const PedidoRemedio p = pedidosRemedio[0];
+  // Sai da lista antes de executar. Se a rede falhar, ele volta na proxima
+  // agenda enquanto estiver pendente no servidor (vale 2 min).
+  memmove(&pedidosRemedio[0], &pedidosRemedio[1], sizeof(PedidoRemedio) * (totalPedidosRemedio - 1));
+  totalPedidosRemedio--;
+
+  uint8_t indice = indiceDoDia(p.diaSemana);
+  Serial.printf("[PEDIDO] Medicamento %s: %s.\n", p.liquido ? "liquido" : "capsula",
+                p.liquido ? "bomba" : NOMES_DIAS[indice]);
+  avisar("Pedido do site", p.liquido ? "Liquido - bomba" : NOMES_DIAS[indice], 30000);
+
+  Evento tentativa = {};
+  tentativa.tipo = EV_TENTATIVA; tentativa.periodo = SEM_PERIODO; tentativa.ocorridoEm = agora;
+  strlcpy(tentativa.pedido, p.id, sizeof(tentativa.pedido));
+  bool prosseguir = false;
+  Rpc r = registrarEvento(tentativa, prosseguir);
+  if (r != Rpc::OK || !prosseguir) {
+    Serial.printf("[PEDIDO] Nao autorizado (%s). Nada sera liberado.\n", r == Rpc::OK ? "ja atendido ou expirado" : nomeRpc(r));
+    avisar("Pedido recusado", "Nada liberado");
+    return true;
+  }
+
+  job = Acionamento();
+  job.teste = false;
+  strlcpy(job.pedido, p.id, sizeof(job.pedido));
+  job.indice = indice;
+  job.bomba = p.liquido;
+  job.gaveta = !p.liquido;
+  iniciarAcionamento();
+  return true;
 }
 
 // Procura horarios vencidos. Executa no maximo um por chamada.
@@ -277,6 +404,7 @@ void verificarAgenda() {
   if (job.fase != Fase::LIVRE) return;
   uint32_t agora = time(nullptr);
   if (atenderPedido(agora)) return;
+  if (atenderPedidoRemedio(agora)) return;
   if (bloqueioAutomacao(agora)) return;
   if (!automacaoDesde) { automacaoDesde = agora; salvarAutomacaoDesde(); }
 
@@ -313,6 +441,21 @@ bool testarCompartimento(int n) {
   job = Acionamento();
   job.teste = true;
   abrirCompartimento(uint8_t(n - 1));
+  return true;
+}
+
+// Teste do buzzer (comando BUZZER): toca o aviso completo, sem mover nada.
+void testarBuzzer() {
+  tocarBuzzer();
+}
+
+// Teste manual da bomba (comando BOMBA): liga pelo tempo do site, sem registrar dose.
+bool testarBomba() {
+  if (job.fase != Fase::LIVRE) return false;
+  job = Acionamento();
+  job.teste = true;
+  job.bomba = true;
+  iniciarAcionamento();
   return true;
 }
 

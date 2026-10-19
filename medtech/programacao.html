@@ -90,6 +90,11 @@
                     <input class="input" id="open-seconds" type="number" min="5" max="300" step="1" required aria-describedby="open-seconds-hint">
                     <p class="field__hint" id="open-seconds-hint">Padrão: 60 s. Entre 5 e 300.</p>
                   </div>
+                  <div class="field">
+                    <label class="field__label" for="pump-seconds">Tempo com a bomba ligada (segundos)</label>
+                    <input class="input" id="pump-seconds" type="number" min="1" max="30" step="1" required aria-describedby="pump-seconds-hint">
+                    <p class="field__hint" id="pump-seconds-hint">Usado nos medicamentos líquidos. Padrão: 5 s. Entre 1 e 30. Meça a quantidade que a bomba libera nesse tempo.</p>
+                  </div>
                   <div class="form__actions">
                     <button type="submit" class="btn btn--primary" id="save-settings">Salvar horários</button>
                   </div>
@@ -103,7 +108,8 @@
               </header>
               <div class="card__body">
                 <ul class="text-sm text-muted" style="margin:0;padding-left:1.1rem;display:grid;gap:var(--space-2)">
-                  <li>No horário de cada período, o compartimento do dia abre, fica aberto pelo tempo configurado e fecha.</li>
+                  <li>No horário de cada período, se houver líquido, o relé liga a bomba pelo tempo configurado; se houver cápsula, o compartimento do dia abre, fica aberto pelo tempo configurado e fecha.</li>
+                  <li>Período só com líquido não abre a gaveta; período só com cápsula não liga a bomba.</li>
                   <li>Cada horário abre <strong>uma única vez</strong>, mesmo se o aparelho reiniciar.</li>
                   <li>Se o aparelho estiver desligado ou sem hora certa, ele só abre se voltar <strong>em até 10 minutos</strong>. Depois disso, registra “Não aberta (atraso)”.</li>
                   <li>Sem internet, o aparelho usa a última agenda recebida por até 24 horas.</li>

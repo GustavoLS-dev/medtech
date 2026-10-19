@@ -14,6 +14,7 @@
   const nameInput = document.getElementById("med-name");
   const daysBox = document.getElementById("med-days");
   const periodsBox = document.getElementById("med-periods");
+  const formBox = document.getElementById("med-form-type");
   const enabledInput = document.getElementById("med-enabled");
   const notesInput = document.getElementById("med-notes");
   const saveButton = document.getElementById("save-med");
@@ -21,6 +22,7 @@
   const list = document.getElementById("med-list");
 
   let medications = [];
+  let requests = [];
   let settings = Data.DEFAULT_SETTINGS;
   let editingId = null;
 
@@ -57,6 +59,8 @@
 
     formTitle.lastChild.textContent = med ? "Editar medicamento" : "Novo medicamento";
     nameInput.value = med ? med.name : "";
+    const formValue = med ? med.form : "solid";
+    formBox.querySelectorAll("input").forEach(function (i) { i.checked = i.value === formValue; });
     renderDays(med ? med.weekdays : [1, 2, 3, 4, 5, 6, 0]);
     renderPeriods(med ? med.periods : ["morning"]);
     enabledInput.checked = med ? med.enabled : true;
@@ -103,6 +107,7 @@
     }
     return {
       name: name,
+      form: formBox.querySelector("input:checked").value,
       weekdays: weekdays,
       periods: periods,
       enabled: enabledInput.checked,
@@ -156,17 +161,22 @@
       const periods = (m.periods || []).map(function (p) {
         return '<span class="chip">' + UI.escapeHtml(Data.periodOf(p).label + " " + Data.periodTime(settings, p)) + "</span>";
       }).join("");
+      const medForm = Data.formOf(m.form);
+      const waiting = requests.some(function (r) { return r.medication_id === m.id; });
       return '<li class="item' + (m.enabled ? "" : " is-paused") + '" data-id="' + UI.escapeHtml(m.id) + '">' +
         '<div class="item__main">' +
-          '<span class="slot-tag" aria-hidden="true">' + Icons.get("pill") + "</span>" +
+          '<span class="slot-tag" aria-hidden="true">' + Icons.get(medForm.icon) + "</span>" +
           "<div>" +
-            '<p class="item__title">' + UI.escapeHtml(m.name) + "</p>" +
+            '<p class="item__title">' + UI.escapeHtml(m.name) + ' <span class="text-xs text-subtle">' + medForm.label + "</span></p>" +
             '<p class="item__meta">' + UI.escapeHtml(daysText(m.weekdays)) + "</p>" +
             '<div class="chips">' + (periods || '<span class="chip">Sem período: não será liberado</span>') + "</div>" +
           "</div>" +
         "</div>" +
         '<div class="item__actions">' +
           (m.enabled ? '<span class="badge badge--success">Ativo</span>' : '<span class="badge badge--neutral">Pausado</span>') +
+          (waiting
+            ? '<span class="badge badge--info"><span class="spinner spinner--sm" aria-hidden="true"></span>Aguardando o dispensador…</span>'
+            : '<button type="button" class="btn btn--primary btn--sm" data-action="dispense">' + Icons.get(medForm.icon) + "Liberar agora</button>") +
           '<button type="button" class="btn btn--secondary btn--sm" data-action="toggle">' + (m.enabled ? "Pausar" : "Retomar") + "</button>" +
           '<button type="button" class="btn btn--ghost btn--sm" data-action="edit">Editar</button>' +
           '<button type="button" class="btn btn--ghost btn--sm" data-action="delete">Excluir</button>' +
@@ -185,6 +195,11 @@
 
     if (action === "edit") return openForm(med);
 
+    if (action === "dispense") {
+      const ok = await UI.confirm(Object.assign({ confirmText: "Liberar agora" }, Data.releaseText(med, settings)));
+      if (!ok) return;
+    }
+
     if (action === "delete") {
       const ok = await UI.confirm({
         title: "Excluir " + med.name + "?",
@@ -197,7 +212,10 @@
 
     UI.setButtonLoading(button, true);
     try {
-      if (action === "delete") {
+      if (action === "dispense") {
+        await Data.requestMedication(id);
+        UI.toast("Pedido enviado ao dispensador.", "success");
+      } else if (action === "delete") {
         await Data.deleteMedication(id);
         UI.toast("Medicamento excluído.", "success");
       } else {
@@ -217,9 +235,10 @@
   /* ------------------------------------------------------------------ */
   async function load() {
     try {
-      const results = await Promise.all([Data.listMedications(), Data.getSettings()]);
+      const results = await Promise.all([Data.listMedications(), Data.getSettings(), Data.listActiveRequests()]);
       medications = results[0];
       settings = results[1];
+      requests = results[2];
       UI.clearAlert(pageMessage);
       renderList();
     } catch (error) {
@@ -236,5 +255,9 @@
     const editId = new URLSearchParams(window.location.search).get("editar");
     const med = medications.find(function (m) { return m.id === editId; });
     if (med) openForm(med);
+    // Tempo real: o botão volta quando o dispensador termina o pedido.
+    Data.subscribe(["dispense_requests", "medications", "dispenser_settings"], load);
+    // Reserva: um pedido não atendido expira em 2 min sem gerar evento.
+    setInterval(function () { if (!document.hidden) load(); }, 15000);
   });
 })();

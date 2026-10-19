@@ -3,8 +3,9 @@
 //
 // Organizador semanal: um compartimento por dia (servo 0 = segunda ... 6 = domingo)
 // e tres periodos por dia (manha, tarde, noite). Consulta a agenda no Supabase
-// a cada 30 s e, no horario de cada periodo, abre o compartimento do dia pelo
-// tempo definido no site (padrao 60 s) e fecha. A bomba NUNCA e acionada.
+// a cada 15 s e, no horario de cada periodo, liga a bomba pelo rele se houver
+// medicamento liquido (padrao 5 s) e abre o compartimento do dia se houver
+// capsula (padrao 60 s). Os tempos vem do site.
 //
 // Arquivos:
 //   config.h        compartimentos, canais, angulos, tempos e limites
@@ -16,7 +17,7 @@
 //   acionamento.h   regras da agenda e movimento dos servos
 //
 // A automacao e ligada e desligada no site (pagina Programacao), sem comandos
-// no terminal. O Monitor Serial serve so para diagnostico (STATUS, TESTE n, PARAR).
+// no terminal. O Monitor Serial serve so para diagnostico (STATUS, TESTE n, BOMBA, BUZZER, PARAR).
 // ============================================================================
 #include <Arduino.h>
 #include <WiFi.h>
@@ -67,13 +68,13 @@ bool configuracaoValida() {
 // ---- Diagnostico ----
 void imprimirAgenda() {
   if (!agenda.valida) { Serial.println("[AGENDA] Nenhuma agenda valida."); return; }
-  Serial.printf("[AGENDA] %u horario(s) na semana; automacao %s no site; gaveta aberta por %u s.\n",
-                agenda.total, agenda.automacao ? "LIGADA" : "DESLIGADA", agenda.tempoAbertoS);
+  Serial.printf("[AGENDA] %u horario(s) na semana; automacao %s no site; gaveta aberta por %u s; bomba ligada por %u s.\n",
+                agenda.total, agenda.automacao ? "LIGADA" : "DESLIGADA", agenda.tempoAbertoS, agenda.tempoBombaS);
   for (int i = 0; i < agenda.total; i++) {
     const Horario &h = agenda.itens[i];
     uint8_t indice = indiceDoDia(h.diaSemana);
-    Serial.printf("  %s %-5s %02u:%02u  servo %u  %u medicamento(s)\n", NOMES_DIAS[indice], nomePeriodo(h.periodo),
-                  h.minutos / 60, h.minutos % 60, dadosCompartimento(indice).canal, h.medicamentos);
+    Serial.printf("  %s %-5s %02u:%02u  servo %u  %u capsula(s)  %u liquido(s)\n", NOMES_DIAS[indice], nomePeriodo(h.periodo),
+                  h.minutos / 60, h.minutos % 60, dadosCompartimento(indice).canal, h.solidos, h.liquidos);
   }
 }
 
@@ -101,13 +102,15 @@ void imprimirStatus() {
                   NOMES_DIAS[indiceDoDia(h->diaSemana)]);
   }
   imprimirAgenda();
-  Serial.println("[STATUS] Bomba: sempre desligada neste firmware.");
+  Serial.println("[STATUS] Bomba: liga so nos horarios e pedidos com liquido (e no comando BOMBA).");
 }
 
 void imprimirAjuda() {
-  Serial.println("Comandos (diagnostico): AJUDA | STATUS | TESTE <1..7> | PARAR | SINCRONIZAR");
+  Serial.println("Comandos (diagnostico): AJUDA | STATUS | TESTE <1..7> | BOMBA | BUZZER | PARAR | SINCRONIZAR");
   Serial.println("  TESTE n      abre e fecha o compartimento do dia n (1 = segunda ... 7 = domingo), sem registrar dose.");
-  Serial.println("  PARAR        corta o sinal de todos os servos (a gaveta pode ficar aberta).");
+  Serial.println("  BOMBA        liga a bomba pelo tempo configurado no site, sem registrar dose.");
+  Serial.println("  BUZZER       toca o aviso de liberacao (10 s), sem mover nada.");
+  Serial.println("  PARAR        desliga a bomba e corta o sinal de todos os servos (a gaveta pode ficar aberta).");
   Serial.println("  A automacao e ligada e desligada no site, pagina Programacao.");
 }
 
@@ -119,7 +122,12 @@ void executarComando(const char *cmd) {
   int n; char extra;
   if (!strcmp(cmd, "AJUDA")) imprimirAjuda();
   else if (!strcmp(cmd, "STATUS")) imprimirStatus();
-  else if (!strcmp(cmd, "PARAR")) { pararAcionamento(); Serial.println("[CMD] Sinais dos servos desligados."); }
+  else if (!strcmp(cmd, "PARAR")) { pararAcionamento(); Serial.println("[CMD] Bomba e sinais dos servos desligados."); }
+  else if (!strcmp(cmd, "BUZZER")) { testarBuzzer(); Serial.println("[CMD] Buzzer tocando por 10 s (PARAR interrompe)."); }
+  else if (!strcmp(cmd, "BOMBA")) {
+    if (testarBomba()) Serial.println("[CMD] Teste da bomba iniciado.");
+    else Serial.println("[CMD] Recusado: ha um acionamento em andamento.");
+  }
   else if (!strncmp(cmd, "AUTO", 4)) {
     Serial.println("[CMD] A automacao agora e ligada e desligada no site (pagina Programacao).");
   } else if (!strcmp(cmd, "SINCRONIZAR")) { primeiraConsulta = true; Serial.println("[CMD] Consulta agendada."); }
@@ -232,10 +240,11 @@ void atualizarLcd() {
 
 void setup() {
   Hardware::iniciarRele();  // primeira operacao: bomba desligada
+  Hardware::iniciarBuzzer();
   Serial.begin(115200);
   Hardware::lcd.begin(16, 2);
   Hardware::lcdMostrar("MedTech", "Iniciando");
-  Serial.printf("\n[MedTech] %s. Bomba sempre desligada.\n", MedTechConfig::FIRMWARE_VERSION);
+  Serial.printf("\n[MedTech] %s. Bomba desligada ate um horario ou pedido com liquido.\n", MedTechConfig::FIRMWARE_VERSION);
 
   carregarArmazenamento();
   if (Hardware::iniciarPca()) Serial.println("[PCA] PCA9685 pronto; todos os canais sem sinal.");
@@ -265,8 +274,10 @@ void setup() {
 }
 
 void loop() {
-  Hardware::bombaDesligada();
+  // Fora da fase de bombeamento, o rele fica sempre desligado.
+  if (job.fase != Fase::BOMBEANDO) Hardware::bombaDesligada();
   lerSerial();
+  atualizarBuzzer();
   atualizarAcionamento();
   // Nenhuma chamada HTTP enquanto um servo esta em movimento ou aberto.
   if (job.fase != Fase::LIVRE) { delay(2); return; }

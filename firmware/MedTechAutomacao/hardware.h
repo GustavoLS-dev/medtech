@@ -15,9 +15,15 @@ LiquidCrystal lcd(LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 bool pcaPronto = false;
 char lcdLinha1[17] = "", lcdLinha2[17] = "";
 
-// ---- Bomba: sempre desligada. Nao existe funcao que a ligue. ----
+// ---- Bomba (rele) ----
+// Ligada SOMENTE pela fase BOMBEANDO de um acionamento (acionamento.h), por no
+// maximo TEMPO_BOMBA_MAX_S. Fora dela, o loop() reforca o desligamento a cada volta.
 inline void bombaDesligada() {
   digitalWrite(RELE, RELE_DESLIGADO);
+}
+
+inline void ligarBomba() {
+  digitalWrite(RELE, RELE_LIGADO);
 }
 
 inline void iniciarRele() {
@@ -25,6 +31,19 @@ inline void iniciarRele() {
   digitalWrite(RELE, RELE_DESLIGADO);
   pinMode(RELE, OUTPUT);
   digitalWrite(RELE, RELE_DESLIGADO);
+}
+
+// ---- Buzzer ----
+inline void buzzerSom(bool ligado) {
+  if (MedTechConfig::BUZZER_ATIVO) digitalWrite(BUZZER, ligado ? HIGH : LOW);
+  else if (ligado) tone(BUZZER, MedTechConfig::BUZZER_FREQ_HZ);
+  else noTone(BUZZER);
+}
+
+inline void iniciarBuzzer() {
+  digitalWrite(BUZZER, LOW);
+  pinMode(BUZZER, OUTPUT);
+  digitalWrite(BUZZER, LOW);
 }
 
 // ---- LCD ----

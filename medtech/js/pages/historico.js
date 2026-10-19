@@ -18,7 +18,8 @@
     falha_i2c: "Falha de comunicação com o controlador dos servos (PCA9685).",
     recusado_pelo_servidor: "O servidor recusou o acionamento.",
     parado_manualmente: "Acionamento interrompido pelo comando PARAR.",
-    modo_offline: "Executado sem internet, com a agenda salva no aparelho."
+    modo_offline: "Executado sem internet, com a agenda salva no aparelho.",
+    liberacao_manual: "Liberação manual pedida no site (botão “Liberar agora” do medicamento)."
   };
 
   let doses = [];
@@ -46,8 +47,11 @@
         "</div>" +
       "</div>" +
       '<div class="item__actions">' + UI.doseBadge(s.state) +
-        (s.state === "actuated" ? '<button type="button" class="btn btn--primary btn--sm" data-confirm="' + UI.escapeHtml(s.scheduledFor) +
-          '" data-period="' + UI.escapeHtml(s.period.key) + '">Retirei</button>' : "") +
+        (s.state !== "actuated" ? ""
+          : s.period.key === "manual"
+            ? '<button type="button" class="btn btn--primary btn--sm" data-confirm-dose="' + UI.escapeHtml(first.id) + '">Retirei</button>'
+            : '<button type="button" class="btn btn--primary btn--sm" data-confirm="' + UI.escapeHtml(s.scheduledFor) +
+              '" data-period="' + UI.escapeHtml(s.period.key) + '">Retirei</button>') +
       "</div></li>";
   }
 
@@ -86,17 +90,21 @@
   }
 
   list.addEventListener("click", async function (event) {
-    const button = event.target.closest("button[data-confirm]");
+    const button = event.target.closest("button[data-confirm], button[data-confirm-dose]");
     if (!button) return;
+    const doseId = button.getAttribute("data-confirm-dose");
     const ok = await UI.confirm({
       title: "Você retirou os medicamentos?",
-      message: "Confirme somente se você pegou os medicamentos deste período no compartimento.",
+      message: doseId
+        ? "Confirme somente se você pegou o medicamento desta liberação manual."
+        : "Confirme somente se você pegou os medicamentos deste período no dispensador.",
       confirmText: "Sim, retirei"
     });
     if (!ok) return;
     UI.setButtonLoading(button, true);
     try {
-      await Data.confirmSlot(button.getAttribute("data-confirm"), button.getAttribute("data-period"));
+      if (doseId) await Data.confirmDose(doseId);
+      else await Data.confirmSlot(button.getAttribute("data-confirm"), button.getAttribute("data-period"));
       UI.toast("Retirada confirmada.", "success");
       await load();
     } catch (error) {

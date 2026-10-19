@@ -100,3 +100,48 @@ test('fuso de São Paulo e início do dia', async () => {
   assert.equal(Data.spParts(inicio).time, '00:00');
   assert.equal(Data.startOfDay(1) - inicio, 86400000);
 });
+
+test('relatório: cada liberação manual é um item próprio, sem período', async () => {
+  const Data = await carregarData();
+  const d = (id, quando, period) => ({ id, medication_id: id, medication_name: id, period, scheduled_for: quando, status: 'actuated', user_confirmed_at: null });
+  const relatorio = Data.dailyReport([
+    d('Xarope', '2026-10-19T13:05:10.5Z', null),             // seg 10:05, manual
+    d('Losartana', '2026-10-19T13:05:40.1Z', null),          // mesmo minuto, outro pedido
+    d('A', '2026-10-19T11:00:00Z', 'morning')
+  ]);
+  assert.deepEqual(puro(relatorio[0].slots.map(s => `${s.period.key} ${s.period.label} ${s.time} ${s.doses.map(x => x.id)}`)), [
+    'morning Manhã 08:00 A',
+    'manual Liberação manual 10:05 Xarope',
+    'manual Liberação manual 10:05 Losartana'
+  ]);
+});
+
+test('hoje: liberações manuais não entram nos horários e a última fica por medicamento', async () => {
+  const Data = await carregarData();
+  const hoje = Data.spParts(new Date()).date;
+  const manual = (id, med, hora) => ({ id, medication_id: med, medication_name: med, period: null,
+    scheduled_for: new Date(`${hoje}T${hora}:00-03:00`).toISOString(), status: 'actuated', user_confirmed_at: null });
+  const doses = [manual('d1', 'm1', '00:01'), manual('d2', 'm1', '00:02'), manual('d3', 'm2', '00:01')];
+
+  const slots = Data.todaySlots([remedio()], doses, CONFIG);
+  assert.equal(slots[0].doses.length, 0, 'a manhã continua sem registro');
+  const ultimas = Data.latestManual(doses);
+  assert.equal(ultimas.m1.id, 'd2');
+  assert.equal(ultimas.m2.id, 'd3');
+});
+
+test('confirmação do "Liberar agora": bomba para líquido, compartimento do dia para cápsula', async () => {
+  const Data = await carregarData();
+  const conf = { ...CONFIG, pump_seconds: 7 };
+  assert.match(Data.releaseText(remedio({ form: 'liquid' }), conf).message, /liga a bomba por 7 s/);
+
+  const hoje = Data.spParts(new Date()).weekday;
+  const nomeHoje = Data.dayOf(hoje).name.toLowerCase();
+  assert.ok(Data.releaseText(remedio(), conf).message.includes(`compartimento de ${nomeHoje} (servo ${Data.compartmentOf(hoje) - 1}) por 60 s`));
+
+  const amanha = (hoje + 1) % 7;
+  const texto = Data.releaseText(remedio({ weekdays: [amanha] }), conf).message;
+  assert.match(texto, new RegExp(`compartimento de ${Data.dayOf(amanha).name.toLowerCase()} `), 'próximo dia programado');
+  assert.equal(Data.formOf('liquid').label, 'Líquido');
+  assert.equal(Data.formOf(undefined).key, 'solid');
+});

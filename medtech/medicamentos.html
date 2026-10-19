@@ -60,6 +60,15 @@
               </div>
 
               <div class="field">
+                <fieldset class="period-picker" id="med-form-type" aria-describedby="med-form-hint">
+                  <legend class="field__label">Tipo</legend>
+                  <label><input type="radio" name="med-form" value="solid" checked><span>Cápsula ou comprimido</span></label>
+                  <label><input type="radio" name="med-form" value="liquid"><span>Líquido</span></label>
+                </fieldset>
+                <p class="field__hint" id="med-form-hint">Cápsula sai pela gaveta do dia (servo). Líquido sai pela bomba, ligada pelo relé no horário.</p>
+              </div>
+
+              <div class="field">
                 <fieldset class="day-picker" id="med-days" aria-describedby="med-days-hint med-days-error">
                   <legend class="field__label">Dias da semana</legend>
                 </fieldset>
@@ -102,7 +111,7 @@
 
         <div class="alert alert--info section">
           <span data-icon="info"></span>
-          <div><strong>Como o dispensador recebe as alterações</strong>O ESP32 consulta a programação a cada 30 segundos. No horário de cada período, ele abre o compartimento do dia por 1 minuto e registra a liberação de cada medicamento daquele período.</div>
+          <div><strong>Como o dispensador recebe as alterações</strong>O ESP32 consulta a programação a cada 15 segundos. No horário de cada período, ele liga a bomba se houver líquido, abre o compartimento do dia se houver cápsula e registra cada medicamento daquele período. O botão “Liberar agora” libera só aquele medicamento, a qualquer hora, sem contar como o horário programado.</div>
         </div>
       </main>
     </div>
