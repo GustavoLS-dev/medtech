@@ -17,28 +17,30 @@ const UI = (function () {
     { id: "dashboard",    label: "Hoje",         href: "dashboard.html",    icon: "dashboard" },
     { id: "medicamentos", label: "Medicamentos", href: "medicamentos.html", icon: "pill" },
     { id: "programacao",  label: "Programação",  href: "programacao.html",  icon: "calendar" },
-    { id: "historico",    label: "Histórico",    href: "historico.html",    icon: "history" },
+    { id: "historico",    label: "Relatório",    href: "historico.html",    icon: "history" },
     { id: "dispositivo",  label: "Dispositivo",  href: "dispositivo.html",  icon: "cpu" }
   ];
 
   /*
    * Estados possíveis de uma dose. A diferença entre eles é importante:
-   * enviar um comando ao ESP32 NÃO significa que o medicamento foi liberado.
+   * o ESP32 mover o servo NÃO significa que o medicamento foi retirado.
+   * O hardware atual não tem sensor, então "sensor_confirmed" nunca aparece
+   * numa dose; ele fica na legenda para deixar a limitação explícita.
    */
   const DOSE_STATES = {
-    pending:      { label: "Pendente",              tone: "neutral", help: "Horário programado; nenhuma ação foi executada ainda." },
-    command_sent: { label: "Comando enviado",       tone: "info",    help: "O sistema enviou o comando, mas o dispositivo ainda não respondeu." },
-    actuated:     { label: "Acionamento realizado", tone: "violet",  help: "O dispositivo informou que moveu o servo. Isso não prova que o comprimido saiu." },
-    confirmed:    { label: "Liberação confirmada",  tone: "success", help: "Há evidência física (ex.: sensor) de que a dose foi liberada." },
-    failed:       { label: "Falha",                 tone: "danger",  help: "O dispositivo informou um erro ou a operação não pôde ser concluída." },
-    unknown:      { label: "Resultado desconhecido", tone: "warning", help: "Não há informação suficiente para saber o que aconteceu (ex.: perda de conexão)." }
+    pending:          { label: "Pendente",               tone: "neutral", help: "O horário ainda não chegou." },
+    attempt:          { label: "Tentativa registrada",   tone: "info",    help: "O dispositivo começou o acionamento, mas ainda não informou o resultado." },
+    actuated:         { label: "Acionamento realizado",  tone: "violet",  help: "O dispositivo informou que abriu e fechou a gaveta. Isso não prova que o medicamento foi retirado." },
+    user_confirmed:   { label: "Retirada confirmada",    tone: "success", help: "Você confirmou no site que retirou o medicamento (confirmação manual, sem sensor)." },
+    sensor_confirmed: { label: "Liberação por sensor",   tone: "success", help: "Exige sensor no compartimento. O dispensador atual não tem sensor, então este estado ainda não é usado." },
+    failed:           { label: "Falha",                  tone: "danger",  help: "O dispositivo informou um erro ou reiniciou durante o acionamento." },
+    missed:           { label: "Não aberta (atraso)",    tone: "warning", help: "O dispositivo estava sem energia, sem hora ou sem agenda válida no horário. Passada a tolerância, a gaveta não é aberta." },
+    unknown:          { label: "Sem registro",           tone: "warning", help: "O horário passou e o dispositivo não enviou nenhuma informação." }
   };
 
-  // Ações que serão ligadas nas próximas etapas (ex.: logout na Etapa 2).
+  // Ações ligadas por outros scripts (o logout é definido em auth.js).
   const handlers = {
-    logout: function () {
-      toast("O logout será ativado junto com a autenticação (Etapa 2).", "info");
-    }
+    logout: function () {}
   };
 
   /* ------------------------------------------------------------------ */
@@ -188,20 +190,6 @@ const UI = (function () {
     sidebar.inert = mobileQuery.matches;
   }
 
-  /** Faixa avisando que a página ainda não exibe dados reais. */
-  function renderPreviewBanner() {
-    const main = document.getElementById("conteudo");
-    if (!main) return;
-    const banner = document.createElement("div");
-    banner.className = "alert alert--warning preview-banner";
-    banner.setAttribute("role", "note");
-    banner.innerHTML = Icons.get("info") +
-      "<div><strong>Dados ainda não conectados</strong>" +
-      "Sua sessão foi verificada, mas as tabelas do banco ainda não foram criadas. " +
-      "Nenhuma informação desta página vem do banco de dados ou do dispositivo.</div>";
-    main.prepend(banner);
-  }
-
   /* ------------------------------------------------------------------ */
   /* Páginas de autenticação: painel lateral com a marca                */
   /* ------------------------------------------------------------------ */
@@ -210,7 +198,7 @@ const UI = (function () {
     if (!aside) return;
 
     const features = [
-      ["calendar", "Programação semanal das doses"],
+      ["calendar", "Organizador semanal: manhã, tarde e noite"],
       ["activity", "Histórico detalhado de cada liberação"],
       ["cpu", "Integração com o dispensador ESP32"],
       ["shield", "Dados protegidos por conta individual"]
@@ -408,6 +396,18 @@ const UI = (function () {
     return '<span class="badge badge--' + state.tone + '">' + state.label + "</span>";
   }
 
+  /**
+   * Nome do medicamento colorido pelo estado da dose (retorno visual).
+   * Retirada confirmada fica verde com ✓; o title explica o estado.
+   */
+  function medChip(name, stateKey) {
+    const state = DOSE_STATES[stateKey] || DOSE_STATES.pending;
+    const done = stateKey === "user_confirmed";
+    return '<span class="chip chip--' + state.tone + '" title="' + escapeHtml(state.label) + '">' +
+      (done ? Icons.get("checkCircle") : "") + escapeHtml(name) +
+      '<span class="sr-only"> (' + escapeHtml(state.label) + ")</span></span>";
+  }
+
   /** Preenche <ul data-dose-legend> com todos os estados e suas explicações. */
   function renderDoseLegend() {
     document.querySelectorAll("[data-dose-legend]").forEach(function (list) {
@@ -433,7 +433,6 @@ const UI = (function () {
     const page = body.getAttribute("data-page");
 
     if (page) renderShell(page);
-    if (body.hasAttribute("data-preview")) renderPreviewBanner();
     renderAuthAside();
 
     document.querySelectorAll("[data-logo]").forEach(function (el) { el.innerHTML = logoHtml(); });
@@ -466,6 +465,7 @@ const UI = (function () {
     clearAlert: clearAlert,
     startCountdown: startCountdown,
     doseBadge: doseBadge,
+    medChip: medChip,
     emptyState: emptyState
   };
 })();

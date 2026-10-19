@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Histórico · MedTech</title>
+  <title>Relatório · MedTech</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
 </head>
-<body data-page="historico" data-preview data-private class="is-checking-session">
+<body data-page="historico" data-private class="is-checking-session">
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
   <!-- Exibido enquanto a sessão é verificada no Supabase -->
@@ -33,34 +33,49 @@
       <main class="content" id="conteudo" tabindex="-1">
         <div class="page-header">
           <div>
-            <h1>Histórico</h1>
-            <p class="page-header__desc">Doses previstas e efetivas, resultados e eventos recebidos do dispositivo.</p>
+            <h1>Relatório diário</h1>
+            <p class="page-header__desc">O que o dispensador liberou em cada dia e período.</p>
           </div>
         </div>
+
+        <div id="page-message" aria-live="polite"></div>
 
         <section class="card" aria-label="Registros do histórico">
           <div class="toolbar">
             <label class="sr-only" for="period-filter">Período</label>
-            <select class="select" id="period-filter" disabled>
-              <option>Últimos 7 dias</option>
+            <select class="select" id="period-filter">
+              <option value="7">Últimos 7 dias</option>
+              <option value="30">Últimos 30 dias</option>
+              <option value="90">Últimos 90 dias</option>
             </select>
             <label class="sr-only" for="result-filter">Resultado</label>
-            <select class="select" id="result-filter" disabled>
-              <option>Todos os resultados</option>
+            <select class="select" id="result-filter">
+              <option value="">Todos os resultados</option>
+              <option value="attempt">Tentativa registrada</option>
+              <option value="actuated">Acionamento realizado</option>
+              <option value="user_confirmed">Retirada confirmada</option>
+              <option value="failed">Falha</option>
+              <option value="missed">Não aberta (atraso)</option>
             </select>
           </div>
-
-          <div class="empty">
-            <div class="empty__icon"><span data-icon="history"></span></div>
-            <p class="empty__title">Nenhum registro ainda</p>
-            <p class="empty__text">Cada dose mostrará o medicamento, a programação, os horários previsto e efetivo, o resultado e os erros relacionados.</p>
+          <div id="history-list">
+            <div class="empty"><span class="spinner" aria-hidden="true"></span><p class="empty__text">Carregando…</p></div>
           </div>
         </section>
 
         <div class="alert alert--warning section">
           <span data-icon="alertTriangle"></span>
-          <div><strong>Enviar um comando não é o mesmo que entregar a dose</strong>Uma dose só será marcada como “Liberação confirmada” quando houver evidência física enviada pelo dispositivo.</div>
+          <div><strong>Acionar a gaveta não é o mesmo que entregar a dose</strong>O dispensador não tem sensor. “Acionamento realizado” só informa que o compartimento abriu e fechou; a retirada só aparece como confirmada quando você toca em “Retirei”. Horários em que o aparelho não enviou nada não aparecem aqui; na página Hoje eles aparecem como “Sem registro”.</div>
         </div>
+
+        <section class="card section" aria-labelledby="legend-title">
+          <header class="card__header">
+            <h2 class="card__title" id="legend-title"><span data-icon="info"></span>Como ler os estados de uma dose</h2>
+          </header>
+          <div class="card__body">
+            <ul class="legend" data-dose-legend></ul>
+          </div>
+        </section>
       </main>
     </div>
   </div>
@@ -70,5 +85,7 @@
   <script src="js/icons.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/pages/historico.js"></script>
 </body>
 </html>

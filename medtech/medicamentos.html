@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
 </head>
-<body data-page="medicamentos" data-preview data-private class="is-checking-session">
+<body data-page="medicamentos" data-private class="is-checking-session">
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
   <!-- Exibido enquanto a sessão é verificada no Supabase -->
@@ -34,34 +34,76 @@
         <div class="page-header">
           <div>
             <h1>Medicamentos</h1>
-            <p class="page-header__desc">Cadastre os medicamentos e associe cada um a um compartimento do dispensador.</p>
+            <p class="page-header__desc">Cadastre cada medicamento com os dias e os períodos (manhã, tarde, noite) em que ele deve ser liberado.</p>
           </div>
           <div class="page-header__actions">
-            <button type="button" class="btn btn--primary" disabled aria-describedby="new-med-note">
+            <button type="button" class="btn btn--primary" id="new-med" disabled>
               <span data-icon="plus"></span>Novo medicamento
             </button>
           </div>
         </div>
 
-        <section class="card" aria-label="Lista de medicamentos">
-          <div class="toolbar">
-            <div class="search">
-              <span data-icon="search"></span>
-              <label class="sr-only" for="med-search">Buscar medicamento</label>
-              <input class="input" id="med-search" type="search" placeholder="Buscar por nome" disabled>
-            </div>
-            <label class="sr-only" for="med-filter">Filtrar por forma farmacêutica</label>
-            <select class="select" id="med-filter" disabled>
-              <option>Todas as formas</option>
-            </select>
-          </div>
+        <div id="page-message" aria-live="polite"></div>
 
-          <div class="empty">
-            <div class="empty__icon"><span data-icon="pill"></span></div>
-            <p class="empty__title">Nenhum medicamento cadastrado</p>
-            <p class="empty__text" id="new-med-note">O cadastro será liberado depois que a tabela de medicamentos e suas políticas de segurança (RLS) forem criadas e revisadas no Supabase.</p>
+        <section class="card" id="med-form-card" aria-labelledby="med-form-title" hidden>
+          <header class="card__header">
+            <h2 class="card__title" id="med-form-title"><span data-icon="pill"></span>Novo medicamento</h2>
+          </header>
+          <div class="card__body">
+            <form class="form" id="med-form" novalidate>
+              <div id="form-message" aria-live="polite"></div>
+
+              <div class="field">
+                <label class="field__label" for="med-name">Nome do medicamento</label>
+                <input class="input" id="med-name" type="text" maxlength="80" autocomplete="off" aria-describedby="med-name-error" required>
+                <p class="field__error" id="med-name-error"></p>
+              </div>
+
+              <div class="field">
+                <fieldset class="day-picker" id="med-days" aria-describedby="med-days-hint med-days-error">
+                  <legend class="field__label">Dias da semana</legend>
+                </fieldset>
+                <p class="field__hint" id="med-days-hint">Cada dia é um compartimento do organizador (servo 0 = segunda … servo 6 = domingo).</p>
+                <p class="field__error" id="med-days-error"></p>
+              </div>
+
+              <div class="field">
+                <fieldset class="period-picker" id="med-periods" aria-describedby="med-periods-hint med-periods-error">
+                  <legend class="field__label">Períodos</legend>
+                </fieldset>
+                <p class="field__hint" id="med-periods-hint">Os horários de cada período são definidos em <a href="programacao.html">Programação</a>.</p>
+                <p class="field__error" id="med-periods-error"></p>
+              </div>
+
+              <label class="check"><input type="checkbox" id="med-enabled" checked> Programação ativa</label>
+
+              <div class="field">
+                <label class="field__label" for="med-notes">Observações (opcional)</label>
+                <textarea class="textarea" id="med-notes" rows="2" maxlength="300"></textarea>
+              </div>
+
+              <div class="form__actions">
+                <button type="submit" class="btn btn--primary" id="save-med">Salvar</button>
+                <button type="button" class="btn btn--secondary" id="cancel-med">Cancelar</button>
+              </div>
+            </form>
           </div>
         </section>
+
+        <section class="card section" aria-labelledby="med-list-title">
+          <header class="card__header">
+            <h2 class="card__title" id="med-list-title"><span data-icon="pill"></span>Medicamentos cadastrados</h2>
+            <span class="text-sm text-muted" id="med-count"></span>
+          </header>
+          <div id="med-list">
+            <div class="empty"><span class="spinner" aria-hidden="true"></span><p class="empty__text">Carregando…</p></div>
+          </div>
+        </section>
+
+        <div class="alert alert--info section">
+          <span data-icon="info"></span>
+          <div><strong>Como o dispensador recebe as alterações</strong>O ESP32 consulta a programação a cada 30 segundos. No horário de cada período, ele abre o compartimento do dia por 1 minuto e registra a liberação de cada medicamento daquele período.</div>
+        </div>
       </main>
     </div>
   </div>
@@ -71,5 +113,8 @@
   <script src="js/icons.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/validation.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/pages/medicamentos.js"></script>
 </body>
 </html>

@@ -432,11 +432,6 @@
 .alert--warning { background: var(--warning-50); border-color: #f2dc9d; color: var(--warning-700); }
 .alert--danger  { background: var(--danger-50);  border-color: #f4c3bd; color: #962d22; }
 
-/* Faixa que avisa que a página ainda está em pré-visualização */
-.preview-banner {
-  margin-bottom: var(--space-5);
-}
-
 /* ---------- Badges de status ---------- */
 .badge {
   display: inline-flex;
@@ -934,4 +929,328 @@ body.is-checking-session .app {
   border-top-color: var(--primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+/* ---------- Listas de itens (medicamentos, doses, eventos) ---------- */
+.item-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.item:last-child {
+  border-bottom: 0;
+}
+
+.item__main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.item__title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.item__meta {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.item__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.item.is-paused .item__title {
+  color: var(--text-subtle);
+}
+
+/* Número do compartimento / horário em destaque à esquerda */
+.slot-tag {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  min-width: 52px;
+  height: 44px;
+  padding: 0 var(--space-2);
+  background: var(--primary-soft);
+  border-radius: var(--radius-sm);
+  color: var(--primary-hover);
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+
+/* ---------- Horários (lista de campos time) ---------- */
+.time-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.time-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.time-list__item .input {
+  width: 130px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.chip {
+  padding: 2px 8px;
+  background: var(--surface-muted);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ---------- Seletor de dias da semana (checkboxes) ---------- */
+.day-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.day-picker label {
+  position: relative;
+}
+
+.day-picker input {
+  position: absolute;
+  opacity: 0;
+}
+
+.day-picker span {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.day-picker input:checked + span {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--white);
+}
+
+.day-picker input:focus-visible + span {
+  box-shadow: var(--focus-ring);
+}
+
+.week-days span.is-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--white);
+}
+
+/* ---------- Caixa de seleção simples ---------- */
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+.check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+/* ---------- Chave do dispositivo (mostrada uma única vez) ---------- */
+.token-box {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: var(--fs-sm);
+  word-break: break-all;
+}
+
+/* Formulário dentro de card */
+.card__body .form {
+  max-width: 640px;
+}
+
+.form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.day-picker legend {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+/* ---------- Seletor de períodos (manhã, tarde, noite) ---------- */
+.period-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.period-picker legend {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.period-picker label {
+  position: relative;
+}
+
+.period-picker input {
+  position: absolute;
+  opacity: 0;
+}
+
+.period-picker span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.period-picker input:checked + span {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--white);
+}
+
+.period-picker input:focus-visible + span {
+  box-shadow: var(--focus-ring);
+}
+
+/* ---------- Grade semanal do organizador ---------- */
+.week-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.week-grid-wrap {
+  overflow-x: auto;
+}
+
+.week-grid th,
+.week-grid td {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.week-grid thead th {
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.week-grid tbody th {
+  white-space: nowrap;
+}
+
+.week-grid td {
+  min-width: 96px;
+}
+
+.week-grid .chip {
+  display: inline-block;
+  margin: 0 2px 2px 0;
+}
+
+.week-grid .is-empty {
+  color: var(--text-subtle);
+}
+
+/* Interruptor da automação */
+.switch-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* Cabeçalho de cada dia no relatório */
+.item--day {
+  background: var(--surface-muted);
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+/* ---------- Retorno visual: nome do medicamento pela situação da dose ---------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chip svg {
+  width: 14px;
+  height: 14px;
+}
+
+.chip--success { background: var(--success-50); color: var(--success-600); box-shadow: inset 0 0 0 1px #bfe5cf; }
+.chip--violet  { background: var(--violet-50);  color: var(--violet-600); }
+.chip--info    { background: var(--info-50);    color: var(--info-600); }
+.chip--danger  { background: var(--danger-50);  color: var(--danger-600); }
+.chip--warning { background: var(--warning-50); color: var(--warning-700); }
+
+/* Horário com todos os medicamentos retirados */
+.item.is-done {
+  background: var(--success-50);
+}
+
+.item.is-done .slot-tag {
+  background: var(--success-600);
+  color: var(--white);
+}
+
+/* Coluna de hoje na grade da semana */
+.week-grid .is-today {
+  background: var(--primary-soft);
 }

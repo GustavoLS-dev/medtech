@@ -1,0 +1,13 @@
+# Credenciais locais do firmware (Wi-Fi, chave pública, token do aparelho)
+firmware/**/secrets.h
+firmware/**/build/
+*.bin
+*.elf
+
+# Dependências dos testes
+node_modules/
+
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example

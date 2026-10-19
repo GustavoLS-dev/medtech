@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
 </head>
-<body data-page="dashboard" data-preview data-private class="is-checking-session">
+<body data-page="dashboard" data-private class="is-checking-session">
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 
   <!-- Exibido enquanto a sessão é verificada no Supabase -->
@@ -35,56 +35,45 @@
           <div>
             <p class="page-header__eyebrow" data-today></p>
             <h1>Hoje</h1>
-            <p class="page-header__desc">Resumo das doses do dia e do estado do dispensador.</p>
+            <p class="page-header__desc">Horários de hoje e o que o dispensador registrou em cada um.</p>
           </div>
         </div>
+
+        <div id="page-message" aria-live="polite"></div>
 
         <!-- Indicadores do dia -->
         <section class="grid grid--stats" aria-label="Resumo do dia">
           <article class="card stat">
-            <div class="stat__top"><span class="stat__label">Doses previstas</span><span class="stat__icon"><span data-icon="calendar"></span></span></div>
-            <p class="stat__value stat__value--empty">—</p>
-            <p class="stat__hint">Sem dados: banco ainda não conectado</p>
+            <div class="stat__top"><span class="stat__label">Medicamentos de hoje</span><span class="stat__icon"><span data-icon="calendar"></span></span></div>
+            <p class="stat__value stat__value--empty" id="stat-total">—</p>
+            <p class="stat__hint">Somando manhã, tarde e noite</p>
           </article>
           <article class="card stat">
-            <div class="stat__top"><span class="stat__label">Liberações confirmadas</span><span class="stat__icon"><span data-icon="checkCircle"></span></span></div>
-            <p class="stat__value stat__value--empty">—</p>
-            <p class="stat__hint">Exige evidência física do dispositivo</p>
+            <div class="stat__top"><span class="stat__label">Retiradas confirmadas</span><span class="stat__icon"><span data-icon="checkCircle"></span></span></div>
+            <p class="stat__value stat__value--empty" id="stat-confirmed">—</p>
+            <p class="stat__hint">Confirmadas por você no site</p>
           </article>
           <article class="card stat">
             <div class="stat__top"><span class="stat__label">Pendentes</span><span class="stat__icon"><span data-icon="clock"></span></span></div>
-            <p class="stat__value stat__value--empty">—</p>
-            <p class="stat__hint">Sem dados: banco ainda não conectado</p>
+            <p class="stat__value stat__value--empty" id="stat-pending">—</p>
+            <p class="stat__hint">Horários que ainda não chegaram</p>
           </article>
           <article class="card stat">
-            <div class="stat__top"><span class="stat__label">Falhas ou desconhecidas</span><span class="stat__icon"><span data-icon="alertTriangle"></span></span></div>
-            <p class="stat__value stat__value--empty">—</p>
-            <p class="stat__hint">Sem dados: banco ainda não conectado</p>
+            <div class="stat__top"><span class="stat__label">Falhas ou sem registro</span><span class="stat__icon"><span data-icon="alertTriangle"></span></span></div>
+            <p class="stat__value stat__value--empty" id="stat-problems">—</p>
+            <p class="stat__hint">Inclui gavetas não abertas por atraso</p>
           </article>
         </section>
 
         <div class="grid grid--main-aside section">
           <div class="stack">
-            <section class="card" aria-labelledby="next-title">
+            <section class="card" aria-labelledby="today-title">
               <header class="card__header">
-                <h2 class="card__title" id="next-title"><span data-icon="clock"></span>Próximos horários</h2>
+                <h2 class="card__title" id="today-title"><span data-icon="clock"></span>Hoje</h2>
+                <a class="btn btn--ghost btn--sm" href="historico.html">Relatório</a>
               </header>
-              <div class="empty">
-                <div class="empty__icon"><span data-icon="clock"></span></div>
-                <p class="empty__title">Nenhuma dose programada</p>
-                <p class="empty__text">Os próximos horários aparecerão aqui depois que medicamentos e programações forem cadastrados.</p>
-              </div>
-            </section>
-
-            <section class="card" aria-labelledby="meds-title">
-              <header class="card__header">
-                <h2 class="card__title" id="meds-title"><span data-icon="pill"></span>Medicamentos programados hoje</h2>
-                <a class="btn btn--ghost btn--sm" href="medicamentos.html">Ver todos</a>
-              </header>
-              <div class="empty">
-                <div class="empty__icon"><span data-icon="pill"></span></div>
-                <p class="empty__title">Nenhum medicamento para hoje</p>
-                <p class="empty__text">A lista será preenchida a partir da programação semanal.</p>
+              <div id="today-list">
+                <div class="empty"><span class="spinner" aria-hidden="true"></span><p class="empty__text">Carregando…</p></div>
               </div>
             </section>
           </div>
@@ -93,29 +82,23 @@
             <section class="card" aria-labelledby="device-title">
               <header class="card__header">
                 <h2 class="card__title" id="device-title"><span data-icon="cpu"></span>Dispositivo</h2>
+                <a class="btn btn--ghost btn--sm" href="dispositivo.html">Detalhes</a>
               </header>
               <div class="card__body">
                 <p class="device-status__title" style="font-size:1rem">
-                  <span class="status-dot status-dot--unknown" aria-hidden="true"></span>Estado não verificado
+                  <span class="status-dot status-dot--unknown" id="device-dot" aria-hidden="true"></span><span id="device-label">Verificando…</span>
                 </p>
-                <p class="text-sm text-muted">A comunicação com o ESP32 ainda não foi implementada.</p>
                 <dl class="info-list section">
-                  <div class="info-list__row"><dt>Última comunicação</dt><dd>Sem registro</dd></div>
-                  <div class="info-list__row"><dt>Firmware</dt><dd>Não informado</dd></div>
+                  <div class="info-list__row"><dt>Último contato</dt><dd id="device-seen">—</dd></div>
+                  <div class="info-list__row"><dt>Automação</dt><dd id="device-auto">—</dd></div>
                 </dl>
               </div>
             </section>
 
-            <section class="card" aria-labelledby="events-title">
-              <header class="card__header">
-                <h2 class="card__title" id="events-title"><span data-icon="activity"></span>Eventos recentes</h2>
-              </header>
-              <div class="empty">
-                <div class="empty__icon"><span data-icon="activity"></span></div>
-                <p class="empty__title">Nenhum evento registrado</p>
-                <p class="empty__text">Eventos enviados pelo dispositivo aparecerão aqui.</p>
-              </div>
-            </section>
+            <div class="alert alert--warning">
+              <span data-icon="alertTriangle"></span>
+              <div><strong>Sem sensor no dispensador</strong>“Acionamento realizado” significa que o aparelho abriu e fechou o compartimento do dia. Só toque em “Retirei” depois de pegar os medicamentos.</div>
+            </div>
           </div>
         </div>
 
@@ -136,5 +119,7 @@
   <script src="js/icons.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/pages/dashboard.js"></script>
 </body>
 </html>

@@ -8,23 +8,35 @@ Feito apenas com **HTML, CSS e JavaScript puro**. Não usa Vite, frameworks nem 
 
 ---
 
-## Situação atual: Etapa 2 (autenticação real)
+## Situação atual: integração com o ESP32
 
 | Item | Situação |
 |---|---|
 | Layout, identidade visual e responsividade | ✅ Pronto |
-| Menu lateral (computador) e gaveta de menu (celular) | ✅ Pronto |
-| Validação dos formulários de login, cadastro e senha | ✅ Pronto (só no navegador) |
-| Login, cadastro, confirmação de e-mail e recuperação de senha | ✅ Etapa 2 (Supabase Auth) |
-| Proteção das páginas privadas (verificação de sessão) | ✅ Etapa 2 |
-| Tabelas e políticas RLS no Supabase | ⏳ Etapa 6, depois de revisão |
-| Comunicação com o ESP32 | ⏳ Etapa 7 |
+| Login, cadastro, confirmação de e-mail e recuperação de senha | ✅ Supabase Auth |
+| Proteção das páginas privadas (verificação de sessão) | ✅ Pronto |
+| Tabelas e políticas RLS no Supabase | ✅ [`../supabase/`](../supabase/LEIA-ME.md): execute o 01 e depois o 02 no SQL Editor |
+| Organizador semanal: 7 compartimentos (servo 0 = segunda … 6 = domingo) × manhã/tarde/noite | ✅ Páginas Medicamentos e Programação |
+| Automação ligada/desligada pelo site (sem terminal) | ✅ Página Programação |
+| Vinculação e status do ESP32 | ✅ Página Dispositivo |
+| Horários do dia, relatório diário e confirmação de retirada | ✅ Páginas Hoje e Relatório |
+| Firmware com automação dos servos | ✅ [`../firmware/MedTechAutomacao`](../firmware/MedTechAutomacao/LEIA-ME.md), **sem teste físico registrado** |
+| Sensor de liberação | ❌ Não existe no hardware atual |
+| Bomba | ❌ Nunca acionada (sem especificação) |
 
-As páginas privadas só aparecem depois que a sessão é confirmada no servidor do Supabase. Elas ainda mostram a faixa **"Dados ainda não conectados"**, porque as tabelas do banco não existem.
+O repositório (`tcc/`) tem três partes:
+
+```
+tcc/
+├── medtech/      Site (publicado na Vercel com Root Directory = medtech)
+├── supabase/     SQL do banco + LEIA-ME
+├── firmware/     Firmware do ESP32 (secrets.h fica fora do Git)
+└── tests/        Testes do banco e da lógica do site (npm test)
+```
 
 ---
 
-## Estrutura
+## Estrutura do site
 
 ```
 medtech/
@@ -49,21 +61,19 @@ medtech/
 │   ├── icons.js            Ícones SVG
 │   ├── ui.js               Componentes de interface reutilizáveis
 │   ├── validation.js       Regras de validação dos formulários
+│   ├── data.js             Acesso às tabelas e funções do banco; doses do dia
 │   └── pages/              Um script por página
 └── assets/                 Logo e favicon
 ```
 
-Arquivos previstos para as próximas etapas:
-
-- `js/data/`: acesso às tabelas (medicamentos, programações, doses, eventos, dispositivos).
-- `js/device.js`: comunicação futura com o dispositivo, sempre passando pelo Supabase.
+A ordem dos dias e os períodos ficam em `DAYS` e `PERIODS`, no início de `js/data.js`. O compartimento de cada dia segue a mesma regra do firmware (`firmware/MedTechAutomacao/config.h`): segunda = servo 0 … domingo = servo 6.
 
 ### Ordem dos scripts
 
 Não usamos `import`/`export`. Cada arquivo cria um objeto global (`SupabaseConfig`, `Icons`, `UI`, `Validation`), então a **ordem das tags `<script>` importa**:
 
 ```
-supabase-js (CDN) → supabase-config.js → icons.js → ui.js → auth.js → validation.js → pages/xxx.js
+supabase-js (CDN) → supabase-config.js → icons.js → ui.js → auth.js → validation.js → data.js → pages/xxx.js
 ```
 
 ---
@@ -112,7 +122,7 @@ Tudo o que o navegador recebe pode ser visto por qualquer pessoa (F12). A chave 
 1. **Supabase Auth**: cada pessoa entra com a própria conta.
 2. **RLS (Row Level Security)**: políticas no banco que permitem que cada usuário leia e altere **somente as próprias linhas**.
 
-Sem RLS, qualquer pessoa com a chave publicável poderia ler as tabelas. Por isso nenhuma tabela será usada antes de as políticas serem escritas e revisadas.
+Sem RLS, qualquer pessoa com a chave publicável poderia ler as tabelas. As tabelas e políticas estão em `../supabase/01-medtech-dispensador.sql`. O passo a passo para instalar fica em [`../supabase/LEIA-ME.md`](../supabase/LEIA-ME.md). Enquanto o SQL não for executado, as páginas mostram "Banco ainda não instalado".
 
 ### 2. URLs de redirecionamento (obrigatório)
 
@@ -181,16 +191,18 @@ Regras de segurança aplicadas:
 
 ## Estados de uma dose
 
-A interface separa o que o sistema **pediu** do que **realmente aconteceu**:
+A interface separa o que o dispositivo **informou** do que **realmente aconteceu**. Os textos ficam em `UI.DOSE_STATES` (`js/ui.js`):
 
 | Estado | Significado |
 |---|---|
-| Pendente | Horário programado; nenhuma ação foi executada ainda. |
-| Comando enviado | O comando saiu do sistema, mas o dispositivo ainda não respondeu. |
-| Acionamento realizado | O dispositivo informou que moveu o servo. Isso não prova que o comprimido saiu. |
-| Liberação confirmada | Há evidência física (ex.: sensor) de que a dose foi liberada. |
-| Falha | O dispositivo informou um erro, ou a operação não pôde ser concluída. |
-| Resultado desconhecido | Não há informação suficiente (ex.: perda de conexão). |
+| Pendente | O horário ainda não chegou. |
+| Tentativa registrada | O dispositivo começou o acionamento, mas ainda não informou o resultado. |
+| Acionamento realizado | O dispositivo informou que abriu e fechou a gaveta. Isso não prova que o medicamento foi retirado. |
+| Retirada confirmada | O usuário tocou em "Retirei" no site (confirmação manual). |
+| Liberação por sensor | Exige sensor. O hardware atual não tem, então este estado ainda não é usado. |
+| Falha | O dispositivo informou um erro ou reiniciou durante o acionamento. |
+| Não aberta (atraso) | O horário passou da tolerância de 10 min (ex.: sem energia). A gaveta não foi aberta. |
+| Sem registro | O horário passou e o dispositivo não enviou nada. |
 
 ---
 

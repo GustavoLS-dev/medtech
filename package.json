@@ -1,0 +1,12 @@
+{
+  "name": "medtech",
+  "private": true,
+  "type": "module",
+  "description": "Testes do banco do MedTech (o site em medtech/ não usa Node nem build).",
+  "scripts": {
+    "test": "node --test \"tests/*.test.mjs\""
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.3.7"
+  }
+}
