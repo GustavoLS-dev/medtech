@@ -1,0 +1,19 @@
+# Variáveis de ambiente e arquivos locais
+.env
+.env.*
+!.env.example
+*.local.js
+*.local.json
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.idea/
+*.swp
+
+# Logs e dependências (caso venham a ser usadas no futuro)
+*.log
+node_modules/

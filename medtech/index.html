@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrar · MedTech</title>
+  <meta name="description" content="MedTech: sistema de dispensação automática de medicamentos.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <div class="auth">
+    <aside class="auth__aside" data-auth-aside></aside>
+
+    <main class="auth__main" id="conteudo">
+      <div class="auth__panel">
+        <a class="logo logo--dark auth__logo-mobile" href="index.html" data-logo aria-label="MedTech"></a>
+
+        <div class="auth__panel-head">
+          <h1>Bem-vindo de volta</h1>
+          <p>Entre com seu e-mail e senha para acessar o painel.</p>
+        </div>
+
+        <div id="config-notice"></div>
+
+        <form class="form" id="login-form">
+          <div id="form-message" aria-live="polite"></div>
+
+          <div class="field">
+            <label class="field__label" for="email">E-mail</label>
+            <input class="input" id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="nome@exemplo.com" required>
+            <p class="field__error" id="email-error"></p>
+          </div>
+
+          <div class="field">
+            <div class="field__row">
+              <label class="field__label" for="password">Senha</label>
+              <a class="text-sm" href="recuperar-senha.html">Esqueci minha senha</a>
+            </div>
+            <div class="input-group">
+              <input class="input" id="password" name="password" type="password" autocomplete="current-password" required>
+              <button type="button" class="input-group__btn" data-toggle-password="password"></button>
+            </div>
+            <p class="field__error" id="password-error"></p>
+          </div>
+
+          <button type="submit" class="btn btn--primary btn--block" id="submit-button">Entrar</button>
+        </form>
+
+        <p class="auth__footer-link">Ainda não tem conta? <a href="cadastro.html">Criar conta</a></p>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/validation.js"></script>
+  <script src="js/pages/login.js"></script>
+</body>
+</html>

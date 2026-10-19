@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nova senha · MedTech</title>
+  <meta name="description" content="Defina uma nova senha para sua conta MedTech.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <div class="auth">
+    <aside class="auth__aside" data-auth-aside></aside>
+
+    <main class="auth__main" id="conteudo">
+      <div class="auth__panel">
+        <a class="logo logo--dark auth__logo-mobile" href="index.html" data-logo aria-label="MedTech"></a>
+
+        <div class="hero-icon"><span data-icon="lock"></span></div>
+        <div class="auth__panel-head">
+          <h1>Criar nova senha</h1>
+          <p>Esta página só funciona a partir do link de recuperação enviado para o seu e-mail.</p>
+        </div>
+
+        <!-- Estado: verificando o link -->
+        <div id="state-checking" class="session-loader__box" role="status" style="padding:2rem 0">
+          <span class="spinner" aria-hidden="true"></span>
+          <p>Verificando o link de recuperação…</p>
+        </div>
+
+        <!-- Estado: link inválido, expirado ou página aberta diretamente -->
+        <div id="state-invalid" class="hidden">
+          <div id="invalid-message"></div>
+          <a class="btn btn--primary btn--block section" href="recuperar-senha.html"><span data-icon="send"></span>Pedir um novo link</a>
+        </div>
+
+        <!-- Estado: senha alterada -->
+        <div id="state-success" class="hidden">
+          <div id="success-message" tabindex="-1"></div>
+          <a class="btn btn--primary btn--block section" href="dashboard.html">Ir para o painel<span data-icon="arrowRight"></span></a>
+        </div>
+
+        <form class="form hidden" id="reset-form">
+          <div id="form-message" aria-live="polite"></div>
+
+          <!-- Campo oculto: ajuda gerenciadores de senha a saber de qual conta é a nova senha -->
+          <input type="email" id="account-email" autocomplete="username" hidden>
+
+          <div class="field">
+            <label class="field__label" for="password">Nova senha</label>
+            <div class="input-group">
+              <input class="input" id="password" name="password" type="password" autocomplete="new-password" aria-describedby="password-hint" required>
+              <button type="button" class="input-group__btn" data-toggle-password="password"></button>
+            </div>
+            <div class="strength" id="password-strength" data-level="0" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <p class="field__hint" id="password-hint">Mínimo de 8 caracteres, com letras e números.</p>
+            <p class="field__error" id="password-error"></p>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="password-confirm">Confirmar nova senha</label>
+            <div class="input-group">
+              <input class="input" id="password-confirm" name="password-confirm" type="password" autocomplete="new-password" required>
+              <button type="button" class="input-group__btn" data-toggle-password="password-confirm"></button>
+            </div>
+            <p class="field__error" id="password-confirm-error"></p>
+          </div>
+
+          <button type="submit" class="btn btn--primary btn--block" id="submit-button">Salvar nova senha</button>
+        </form>
+
+        <p class="auth__footer-link"><a href="index.html">Voltar para o login</a></p>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/validation.js"></script>
+  <script src="js/pages/redefinir-senha.js"></script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Medicamentos · MedTech</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body data-page="medicamentos" data-preview data-private class="is-checking-session">
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <!-- Exibido enquanto a sessão é verificada no Supabase -->
+  <div class="session-loader" id="session-loader">
+    <div class="session-loader__box" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      <p>Verificando sua sessão…</p>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Menu principal"></aside>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="content" id="conteudo" tabindex="-1">
+        <div class="page-header">
+          <div>
+            <h1>Medicamentos</h1>
+            <p class="page-header__desc">Cadastre os medicamentos e associe cada um a um compartimento do dispensador.</p>
+          </div>
+          <div class="page-header__actions">
+            <button type="button" class="btn btn--primary" disabled aria-describedby="new-med-note">
+              <span data-icon="plus"></span>Novo medicamento
+            </button>
+          </div>
+        </div>
+
+        <section class="card" aria-label="Lista de medicamentos">
+          <div class="toolbar">
+            <div class="search">
+              <span data-icon="search"></span>
+              <label class="sr-only" for="med-search">Buscar medicamento</label>
+              <input class="input" id="med-search" type="search" placeholder="Buscar por nome" disabled>
+            </div>
+            <label class="sr-only" for="med-filter">Filtrar por forma farmacêutica</label>
+            <select class="select" id="med-filter" disabled>
+              <option>Todas as formas</option>
+            </select>
+          </div>
+
+          <div class="empty">
+            <div class="empty__icon"><span data-icon="pill"></span></div>
+            <p class="empty__title">Nenhum medicamento cadastrado</p>
+            <p class="empty__text" id="new-med-note">O cadastro será liberado depois que a tabela de medicamentos e suas políticas de segurança (RLS) forem criadas e revisadas no Supabase.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

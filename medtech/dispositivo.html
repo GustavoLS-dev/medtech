@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dispositivo · MedTech</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body data-page="dispositivo" data-preview data-private class="is-checking-session">
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <!-- Exibido enquanto a sessão é verificada no Supabase -->
+  <div class="session-loader" id="session-loader">
+    <div class="session-loader__box" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      <p>Verificando sua sessão…</p>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Menu principal"></aside>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="content" id="conteudo" tabindex="-1">
+        <div class="page-header">
+          <div>
+            <h1>Dispositivo</h1>
+            <p class="page-header__desc">Estado e comunicação do dispensador ESP32.</p>
+          </div>
+        </div>
+
+        <section class="card" aria-labelledby="conn-title">
+          <div class="card__body">
+            <div class="device-status">
+              <div class="device-status__icon"><span data-icon="wifiOff"></span></div>
+              <div>
+                <h2 class="device-status__title" id="conn-title">
+                  <span class="status-dot status-dot--unknown" aria-hidden="true"></span>Não conectado
+                </h2>
+                <p class="text-sm text-muted">O estado do dispositivo ainda não foi verificado. A comunicação com o ESP32 será implementada em uma etapa posterior.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="grid grid--2 section">
+          <section class="card" aria-labelledby="info-title">
+            <header class="card__header">
+              <h2 class="card__title" id="info-title"><span data-icon="cpu"></span>Informações</h2>
+            </header>
+            <div class="card__body">
+              <dl class="info-list">
+                <div class="info-list__row"><dt>Estado da conexão</dt><dd>Não verificado</dd></div>
+                <div class="info-list__row"><dt>Última comunicação</dt><dd>Sem registro</dd></div>
+                <div class="info-list__row"><dt>Última sincronização</dt><dd>Sem registro</dd></div>
+                <div class="info-list__row"><dt>Versão do firmware</dt><dd>Não informada</dd></div>
+              </dl>
+            </div>
+          </section>
+
+          <section class="card" aria-labelledby="errors-title">
+            <header class="card__header">
+              <h2 class="card__title" id="errors-title"><span data-icon="alertTriangle"></span>Últimos erros</h2>
+            </header>
+            <div class="empty">
+              <div class="empty__icon"><span data-icon="checkCircle"></span></div>
+              <p class="empty__title">Nenhum erro recebido</p>
+              <p class="empty__text">Isso não significa que o dispositivo esteja funcionando: nenhuma comunicação foi recebida até agora.</p>
+            </div>
+          </section>
+        </div>
+
+        <section class="card section" aria-labelledby="slots-title">
+          <header class="card__header">
+            <h2 class="card__title" id="slots-title"><span data-icon="package"></span>Compartimentos</h2>
+          </header>
+          <div class="empty">
+            <div class="empty__icon"><span data-icon="package"></span></div>
+            <p class="empty__title">Sem leituras de sensores</p>
+            <p class="empty__text">Se o dispensador tiver sensores nos compartimentos, o estado de cada um aparecerá aqui.</p>
+          </div>
+        </section>
+
+        <section class="card section" aria-labelledby="arch-title">
+          <header class="card__header">
+            <h2 class="card__title" id="arch-title"><span data-icon="activity"></span>Arquitetura prevista</h2>
+          </header>
+          <div class="card__body">
+            <ol class="flow">
+              <li><span class="flow__node"><span data-icon="globe"></span>Site</span></li>
+              <li><span class="flow__node"><span data-icon="database"></span>Supabase / backend seguro</span></li>
+              <li><span class="flow__node"><span data-icon="cpu"></span>ESP32</span></li>
+              <li><span class="flow__node"><span data-icon="cog"></span>PCA9685</span></li>
+              <li><span class="flow__node"><span data-icon="package"></span>Servos</span></li>
+            </ol>
+            <p class="text-sm text-muted section">O navegador nunca fala diretamente com o ESP32. O dispositivo terá credencial própria e limitada, e cada comando terá um identificador único para evitar acionamentos duplicados.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

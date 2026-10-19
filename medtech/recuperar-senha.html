@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recuperar senha · MedTech</title>
+  <meta name="description" content="Recupere o acesso à sua conta MedTech.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <div class="auth">
+    <aside class="auth__aside" data-auth-aside></aside>
+
+    <main class="auth__main" id="conteudo">
+      <div class="auth__panel">
+        <a class="logo logo--dark auth__logo-mobile" href="index.html" data-logo aria-label="MedTech"></a>
+
+        <div class="hero-icon"><span data-icon="key"></span></div>
+        <div class="auth__panel-head">
+          <h1>Recuperar senha</h1>
+          <p>Informe o e-mail da sua conta. Se ele estiver cadastrado, você receberá um link para criar uma nova senha.</p>
+        </div>
+
+        <div id="config-notice"></div>
+
+        <form class="form" id="recover-form">
+          <div id="form-message" aria-live="polite"></div>
+
+          <div class="field">
+            <label class="field__label" for="email">E-mail</label>
+            <input class="input" id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="nome@exemplo.com" required>
+            <p class="field__error" id="email-error"></p>
+          </div>
+
+          <button type="submit" class="btn btn--primary btn--block" id="submit-button">
+            <span data-icon="send"></span><span class="btn__label">Enviar link de recuperação</span>
+          </button>
+        </form>
+
+        <p class="auth__footer-link"><a href="index.html">Voltar para o login</a></p>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/validation.js"></script>
+  <script src="js/pages/recuperar-senha.js"></script>
+</body>
+</html>

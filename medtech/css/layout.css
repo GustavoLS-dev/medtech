@@ -1,0 +1,416 @@
+/* ==========================================================================
+   MedTech — layout.css
+   Estrutura das páginas: área logada (sidebar + topo + conteúdo)
+   e páginas de autenticação (login, cadastro, etc.).
+   ========================================================================== */
+
+/* ---------- Área logada ---------- */
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-4);
+  background: var(--brand-900);
+  background-image: linear-gradient(180deg, #073f4b 0%, #052f38 100%);
+  color: #cfe7eb;
+  overflow-y: auto;
+}
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
+  color: var(--white);
+  text-decoration: none;
+}
+
+.sidebar__brand:hover {
+  text-decoration: none;
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar__section-label {
+  margin: var(--space-4) var(--space-3) var(--space-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7fb3bc;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0.625rem var(--space-3);
+  border-radius: var(--radius-sm);
+  color: #cfe7eb;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.nav-link svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--white);
+  text-decoration: none;
+}
+
+.nav-link[aria-current="page"] {
+  background: rgba(14, 143, 163, 0.28);
+  color: var(--white);
+  box-shadow: inset 3px 0 0 #5fd0de;
+}
+
+.nav-link[aria-current="page"] svg {
+  opacity: 1;
+}
+
+.sidebar__footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sidebar__user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar__user-name {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--white);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__user-email {
+  font-size: var(--fs-xs);
+  color: #8fbfc7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar .nav-link--logout {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+/* Fundo escuro atrás da gaveta: só existe no celular */
+.sidebar-overlay {
+  display: none;
+}
+
+/* Conteúdo principal */
+.main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: none; /* só aparece em telas pequenas */
+}
+
+.content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-6) var(--space-7);
+  animation: fade-up var(--t-med) var(--ease) both;
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.page-header__eyebrow {
+  margin-bottom: var(--space-1);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.page-header__desc {
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+}
+
+.page-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Grades responsivas */
+.grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.grid--stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid--main-aside {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.section {
+  margin-top: var(--space-5);
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---------- Tablet ---------- */
+@media (max-width: 1100px) {
+  .grid--stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid--main-aside {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Celular / tablet pequeno: sidebar vira gaveta ---------- */
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 60;
+    width: min(var(--sidebar-w), 84vw);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform var(--t-med) var(--ease), visibility var(--t-med);
+  }
+
+  .sidebar.is-open {
+    transform: none;
+    visibility: visible;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(6, 22, 28, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--t-med) var(--ease);
+  }
+
+  .sidebar-overlay.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .content {
+    padding: var(--space-5) var(--space-4) var(--space-7);
+  }
+}
+
+@media (max-width: 560px) {
+  .grid--stats,
+  .grid--2 {
+    grid-template-columns: 1fr;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .page-header__actions,
+  .page-header__actions .btn {
+    width: 100%;
+  }
+}
+
+/* ---------- Páginas de autenticação ---------- */
+.auth {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.auth__aside {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-7);
+  color: #d6eef1;
+  background:
+    radial-gradient(circle at 85% 15%, rgba(95, 208, 222, 0.22), transparent 45%),
+    radial-gradient(circle at 10% 90%, rgba(14, 143, 163, 0.35), transparent 50%),
+    linear-gradient(160deg, #0a5c6b 0%, #063b46 60%, #042a32 100%);
+  overflow: hidden;
+}
+
+.auth__aside h2 {
+  max-width: 26ch;
+  font-size: 2rem;
+  color: var(--white);
+}
+
+.auth__aside p {
+  max-width: 44ch;
+  margin-top: var(--space-3);
+  color: #b5dbe0;
+}
+
+.auth__features {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auth__features li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--fs-sm);
+  color: #d6eef1;
+}
+
+.auth__features svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: #5fd0de;
+}
+
+.auth__aside-note {
+  font-size: var(--fs-xs);
+  color: #8fbfc7;
+}
+
+.auth__main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6) var(--space-4);
+  background: var(--surface);
+}
+
+.auth__panel {
+  width: 100%;
+  max-width: 420px;
+  animation: fade-up var(--t-med) var(--ease) both;
+}
+
+.auth__panel-head {
+  margin-bottom: var(--space-5);
+}
+
+.auth__panel-head p {
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+}
+
+/* Logo exibido só no celular (no computador ele já aparece no painel escuro) */
+.auth .auth__logo-mobile {
+  display: none;
+  margin-bottom: var(--space-5);
+}
+
+.auth__footer-link {
+  margin-top: var(--space-5);
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+@media (max-width: 900px) {
+  .auth {
+    grid-template-columns: 1fr;
+  }
+
+  .auth__aside {
+    display: none;
+  }
+
+  .auth__main {
+    align-items: flex-start;
+    padding-top: var(--space-7);
+  }
+
+  .auth .auth__logo-mobile {
+    display: inline-flex;
+  }
+}

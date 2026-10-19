@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Histórico · MedTech</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body data-page="historico" data-preview data-private class="is-checking-session">
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <!-- Exibido enquanto a sessão é verificada no Supabase -->
+  <div class="session-loader" id="session-loader">
+    <div class="session-loader__box" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      <p>Verificando sua sessão…</p>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Menu principal"></aside>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="content" id="conteudo" tabindex="-1">
+        <div class="page-header">
+          <div>
+            <h1>Histórico</h1>
+            <p class="page-header__desc">Doses previstas e efetivas, resultados e eventos recebidos do dispositivo.</p>
+          </div>
+        </div>
+
+        <section class="card" aria-label="Registros do histórico">
+          <div class="toolbar">
+            <label class="sr-only" for="period-filter">Período</label>
+            <select class="select" id="period-filter" disabled>
+              <option>Últimos 7 dias</option>
+            </select>
+            <label class="sr-only" for="result-filter">Resultado</label>
+            <select class="select" id="result-filter" disabled>
+              <option>Todos os resultados</option>
+            </select>
+          </div>
+
+          <div class="empty">
+            <div class="empty__icon"><span data-icon="history"></span></div>
+            <p class="empty__title">Nenhum registro ainda</p>
+            <p class="empty__text">Cada dose mostrará o medicamento, a programação, os horários previsto e efetivo, o resultado e os erros relacionados.</p>
+          </div>
+        </section>
+
+        <div class="alert alert--warning section">
+          <span data-icon="alertTriangle"></span>
+          <div><strong>Enviar um comando não é o mesmo que entregar a dose</strong>Uma dose só será marcada como “Liberação confirmada” quando houver evidência física enviada pelo dispositivo.</div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

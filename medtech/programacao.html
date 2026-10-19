@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Programação · MedTech</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body data-page="programacao" data-preview data-private class="is-checking-session">
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <!-- Exibido enquanto a sessão é verificada no Supabase -->
+  <div class="session-loader" id="session-loader">
+    <div class="session-loader__box" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      <p>Verificando sua sessão…</p>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Menu principal"></aside>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="content" id="conteudo" tabindex="-1">
+        <div class="page-header">
+          <div>
+            <h1>Programação semanal</h1>
+            <p class="page-header__desc">Defina dose, dias da semana e horários de cada medicamento.</p>
+          </div>
+          <div class="page-header__actions">
+            <button type="button" class="btn btn--primary" disabled aria-describedby="schedule-note">
+              <span data-icon="plus"></span>Nova programação
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid--main-aside">
+          <section class="card" aria-label="Programações">
+            <div class="empty">
+              <div class="empty__icon"><span data-icon="calendar"></span></div>
+              <p class="empty__title">Nenhuma programação criada</p>
+              <p class="empty__text" id="schedule-note">Para programar doses, primeiro é preciso cadastrar medicamentos. Essa função depende das tabelas do banco de dados.</p>
+            </div>
+          </section>
+
+          <div class="stack">
+            <section class="card" aria-labelledby="tz-title">
+              <header class="card__header">
+                <h2 class="card__title" id="tz-title"><span data-icon="globe"></span>Fuso horário</h2>
+              </header>
+              <div class="card__body">
+                <dl class="info-list">
+                  <div class="info-list__row"><dt>Referência</dt><dd>America/Sao_Paulo</dd></div>
+                  <div class="info-list__row"><dt>Data atual</dt><dd data-today></dd></div>
+                </dl>
+              </div>
+            </section>
+
+            <section class="card" aria-labelledby="week-title">
+              <header class="card__header">
+                <h2 class="card__title" id="week-title"><span data-icon="calendar"></span>Dias da semana</h2>
+              </header>
+              <div class="card__body">
+                <div class="week-days" aria-label="Domingo a sábado">
+                  <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+                </div>
+                <p class="text-xs text-subtle section">Os dias ativos de cada programação ficarão destacados aqui.</p>
+              </div>
+            </section>
+
+            <div class="alert alert--info">
+              <span data-icon="shield"></span>
+              <div><strong>Nenhum comando é enviado ao dispositivo</strong>O ESP32 só receberá programações depois que a validação e a comunicação segura forem implementadas.</div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Confirme seu e-mail · MedTech</title>
+  <meta name="description" content="Confirmação de e-mail da conta MedTech.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <div class="auth">
+    <aside class="auth__aside" data-auth-aside></aside>
+
+    <main class="auth__main" id="conteudo">
+      <div class="auth__panel">
+        <a class="logo logo--dark auth__logo-mobile" href="index.html" data-logo aria-label="MedTech"></a>
+
+        <!-- Estado: verificando o retorno do link -->
+        <section id="state-checking" aria-live="polite">
+          <div class="session-loader__box" role="status" style="padding:3rem 0">
+            <span class="spinner" aria-hidden="true"></span>
+            <p>Verificando sua confirmação no servidor…</p>
+          </div>
+        </section>
+
+        <!-- Estado: e-mail confirmado (sessão conferida no Supabase) -->
+        <section id="state-confirmed" class="hidden" aria-labelledby="confirmed-title">
+          <div class="hero-icon" style="background:var(--success-50);color:var(--success-600)"><span data-icon="checkCircle"></span></div>
+          <div class="auth__panel-head">
+            <h1 id="confirmed-title" tabindex="-1">E-mail confirmado</h1>
+            <p>Sua conta <strong id="confirmed-email"></strong> está ativa. Você já pode usar o MedTech.</p>
+          </div>
+          <a class="btn btn--primary btn--block" href="dashboard.html">Ir para o painel<span data-icon="arrowRight"></span></a>
+        </section>
+
+        <!-- Estado: link inválido, expirado ou não confirmado -->
+        <section id="state-error" class="hidden" aria-labelledby="error-title">
+          <div class="hero-icon" style="background:var(--danger-50);color:var(--danger-600)"><span data-icon="alertTriangle"></span></div>
+          <div class="auth__panel-head">
+            <h1 id="error-title" tabindex="-1">Não foi possível confirmar</h1>
+            <p id="error-text">O link é inválido ou expirou. Peça um novo e-mail de confirmação abaixo.</p>
+          </div>
+        </section>
+
+        <!-- Estado: confirmação pendente (após o cadastro) -->
+        <section id="state-pending" class="hidden" aria-labelledby="pending-title">
+          <div class="hero-icon"><span data-icon="mail"></span></div>
+          <div class="auth__panel-head">
+            <h1 id="pending-title">Verifique seu e-mail</h1>
+            <p id="pending-text-known" class="hidden">Enviamos um link de confirmação para <strong id="sent-email"></strong>.
+               Sua conta só poderá ser usada depois que o endereço for confirmado.</p>
+            <p id="pending-text-unknown">Se você acabou de se cadastrar, enviamos um link de confirmação para o seu e-mail.
+               Sua conta só poderá ser usada depois que o endereço for confirmado.</p>
+          </div>
+
+          <ol class="steps">
+            <li>Abra a caixa de entrada do e-mail cadastrado.</li>
+            <li>Procure a mensagem de confirmação enviada pelo sistema.</li>
+            <li>Clique no link: você voltará para esta página com a conta confirmada.</li>
+          </ol>
+
+          <div class="alert alert--info section">
+            <span data-icon="info"></span>
+            <div><strong>Não encontrou a mensagem?</strong>Verifique as pastas de spam, lixo eletrônico e promoções. A entrega pode levar alguns minutos.</div>
+          </div>
+        </section>
+
+        <!-- Reenvio: aparece nos estados "pendente" e "erro" -->
+        <form class="form section hidden" id="resend-form">
+          <div id="resend-message" aria-live="polite"></div>
+
+          <div class="field" id="resend-email-field">
+            <label class="field__label" for="resend-email">E-mail cadastrado</label>
+            <input class="input" id="resend-email" name="resend-email" type="email" autocomplete="email" inputmode="email" placeholder="nome@exemplo.com">
+            <p class="field__error" id="resend-email-error"></p>
+          </div>
+
+          <button type="submit" class="btn btn--secondary btn--block" id="resend-button">
+            <span data-icon="refresh"></span><span class="btn__label">Reenviar e-mail de confirmação</span>
+          </button>
+          <a class="btn btn--ghost btn--block" href="index.html"><span data-icon="arrowLeft"></span>Voltar para o login</a>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/validation.js"></script>
+  <script src="js/pages/confirmacao.js"></script>
+</body>
+</html>

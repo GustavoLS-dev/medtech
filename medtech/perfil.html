@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Perfil · MedTech</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body data-page="perfil" data-preview data-private class="is-checking-session">
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <!-- Exibido enquanto a sessão é verificada no Supabase -->
+  <div class="session-loader" id="session-loader">
+    <div class="session-loader__box" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      <p>Verificando sua sessão…</p>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Menu principal"></aside>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="main">
+      <header class="topbar" id="topbar"></header>
+
+      <main class="content" id="conteudo" tabindex="-1">
+        <div class="page-header">
+          <div>
+            <h1>Perfil</h1>
+            <p class="page-header__desc">Informações e configurações da sua conta.</p>
+          </div>
+        </div>
+
+        <div class="grid grid--2">
+          <section class="card" aria-labelledby="account-title">
+            <header class="card__header">
+              <h2 class="card__title" id="account-title"><span data-icon="user"></span>Conta</h2>
+            </header>
+            <div class="card__body">
+              <div class="device-status">
+                <div class="avatar avatar--lg" id="profile-avatar" aria-hidden="true">?</div>
+                <div style="min-width:0">
+                  <p style="font-weight:700" id="profile-name">Carregando…</p>
+                  <p class="text-sm text-muted">Dados fornecidos pelo Supabase Auth.</p>
+                </div>
+              </div>
+              <dl class="info-list section">
+                <div class="info-list__row"><dt>E-mail</dt><dd id="profile-email">—</dd></div>
+                <div class="info-list__row"><dt>E-mail confirmado em</dt><dd id="profile-confirmed">—</dd></div>
+                <div class="info-list__row"><dt>Conta criada em</dt><dd id="profile-created">—</dd></div>
+                <div class="info-list__row"><dt>Último acesso</dt><dd id="profile-last-sign-in">—</dd></div>
+              </dl>
+            </div>
+          </section>
+
+          <div class="stack">
+            <section class="card" aria-labelledby="security-title">
+              <header class="card__header">
+                <h2 class="card__title" id="security-title"><span data-icon="shield"></span>Segurança</h2>
+              </header>
+              <div class="card__body stack">
+                <p class="text-sm text-muted">Para trocar a senha, enviaremos um link para o seu e-mail.</p>
+                <a class="btn btn--secondary" href="recuperar-senha.html"><span data-icon="key"></span>Alterar senha</a>
+                <button type="button" class="btn btn--ghost" id="profile-logout"><span data-icon="logout"></span>Sair da conta</button>
+              </div>
+            </section>
+
+            <section class="card" aria-labelledby="prefs-title">
+              <header class="card__header">
+                <h2 class="card__title" id="prefs-title"><span data-icon="globe"></span>Preferências</h2>
+              </header>
+              <div class="card__body">
+                <dl class="info-list">
+                  <div class="info-list__row"><dt>Fuso horário</dt><dd>America/Sao_Paulo</dd></div>
+                  <div class="info-list__row"><dt>Idioma</dt><dd>Português (Brasil)</dd></div>
+                </dl>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/pages/perfil.js"></script>
+</body>
+</html>

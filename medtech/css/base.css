@@ -1,0 +1,206 @@
+/* ==========================================================================
+   MedTech — base.css
+   Variáveis de design (cores, fontes, espaçamentos), reset e tipografia.
+   Todas as outras folhas de estilo usam estas variáveis.
+   ========================================================================== */
+
+:root {
+  /* ---- Cores da marca ---- */
+  --brand-900: #063b46;
+  --brand-700: #0a5c6b;
+  --brand-600: #0b7285;
+  --brand-500: #0e8fa3;
+  --brand-100: #d7f1f4;
+  --brand-50:  #eef9fa;
+
+  /* ---- Neutros ---- */
+  --gray-900: #0f1b24;
+  --gray-700: #334450;
+  --gray-600: #4a5b67;
+  --gray-500: #6b7b86;
+  --gray-300: #c9d3d9;
+  --gray-200: #e1e7eb;
+  --gray-100: #eef2f4;
+  --gray-50:  #f6f8f9;
+  --white:    #ffffff;
+
+  /* ---- Cores semânticas ---- */
+  --success-600: #1e7f4f;
+  --success-50:  #e7f6ee;
+  --danger-600:  #c0392b;
+  --danger-50:   #fdecea;
+  --warning-700: #8a5a00;
+  --warning-50:  #fff5dc;
+  --info-600:    #2563b6;
+  --info-50:     #e8f0fc;
+  --violet-600:  #6a45b8;
+  --violet-50:   #f1ecfb;
+
+  /* ---- Papéis (use estes nos componentes) ---- */
+  --bg:            var(--gray-50);
+  --surface:       var(--white);
+  --surface-muted: var(--gray-100);
+  --border:        var(--gray-200);
+  --border-strong: var(--gray-300);
+  --text:          var(--gray-900);
+  --text-muted:    var(--gray-600);
+  --text-subtle:   var(--gray-500);
+  --primary:       var(--brand-600);
+  --primary-hover: var(--brand-700);
+  --primary-soft:  var(--brand-50);
+  --focus-ring:    0 0 0 3px rgba(14, 143, 163, 0.35);
+
+  /* ---- Tipografia ---- */
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-head: "Manrope", var(--font-body);
+  --fs-xs:  0.75rem;
+  --fs-sm:  0.875rem;
+  --fs-md:  1rem;
+  --fs-lg:  1.125rem;
+  --fs-xl:  1.375rem;
+  --fs-2xl: 1.75rem;
+
+  /* ---- Espaçamentos, bordas e sombras ---- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(15, 27, 36, 0.06);
+  --shadow-md: 0 4px 16px rgba(15, 27, 36, 0.07), 0 1px 3px rgba(15, 27, 36, 0.05);
+  --shadow-lg: 0 18px 48px rgba(15, 27, 36, 0.16);
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --t-fast: 150ms;
+  --t-med: 250ms;
+
+  --sidebar-w: 264px;
+}
+
+/* ---- Reset leve ---- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+h1, h2, h3, h4 {
+  margin: 0;
+  font-family: var(--font-head);
+  line-height: 1.25;
+  color: var(--text);
+}
+
+h1 { font-size: var(--fs-2xl); font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: var(--fs-xl);  font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: var(--fs-lg);  font-weight: 700; }
+
+p {
+  margin: 0;
+}
+
+/* ---- Acessibilidade ---- */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+/* Títulos e avisos que recebem foco por código (para leitores de tela)
+   não precisam do anel de foco */
+[tabindex="-1"]:focus {
+  box-shadow: none;
+}
+
+/* Texto visível apenas para leitores de tela */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Link "pular para o conteúdo" para quem navega pelo teclado */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: var(--space-4);
+  z-index: 1000;
+  padding: var(--space-2) var(--space-4);
+  background: var(--primary);
+  color: var(--white);
+  border-radius: var(--radius-sm);
+}
+
+.skip-link:focus {
+  top: var(--space-4);
+}
+
+/* Quem prefere menos movimento não vê animações */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---- Utilitários pequenos ---- */
+.text-muted  { color: var(--text-muted); }
+.text-subtle { color: var(--text-subtle); }
+.text-sm     { font-size: var(--fs-sm); }
+.text-xs     { font-size: var(--fs-xs); }
+.hidden      { display: none !important; }
