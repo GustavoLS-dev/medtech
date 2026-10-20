@@ -14,6 +14,10 @@ Arquivos, executados **nesta ordem**:
 
 6. [06-horarios-por-medicamento.sql](06-horarios-por-medicamento.sql): cada medicamento tem os **próprios horários** (`medications.times`, iguais em todos os dias marcados) e a configuração de manhã/tarde/noite deixa de ser usada. Os medicamentos já cadastrados recebem os horários dos períodos que tinham. Um horário do organizador passa a ser **dia + hora**; "manhã/tarde/noite" vira só um rótulo pela hora (antes das 12:00, antes das 18:00, depois). Quando o dispensador abre e fecha num horário programado, as doses daquele horário são marcadas como **tomadas** (`user_confirmed_at`); o "Liberar agora" continua pedindo "Retirei". Requer o firmware 2.5.
 
+7. [07-liberar-agora-tomado.sql](07-liberar-agora-tomado.sql): o "Liberar agora" também marca o medicamento como **tomado** quando o dispensador abre e fecha (ou liga a bomba). Ninguém precisa tocar em "Retirei". Não precisa regravar o ESP32.
+
+Se você já executou do 01 ao 06, **execute só o 07**.
+
 Se você já executou do 01 ao 05, **execute só o 06**.
 
 Se você já executou do 01 ao 04, **execute só o 05**. Nunca rode de novo um script antigo sozinho: rodar o 01, o 02 ou o 03 depois dos seguintes desfaz as atualizações deles. Se isso acontecer, execute de novo, em ordem, todos os que vêm depois.

@@ -15,7 +15,7 @@ Feito apenas com **HTML, CSS e JavaScript puro**. Não usa Vite, frameworks nem 
 | Layout, identidade visual e responsividade | ✅ Pronto |
 | Login, cadastro, confirmação de e-mail e recuperação de senha | ✅ Supabase Auth |
 | Proteção das páginas privadas (verificação de sessão) | ✅ Pronto |
-| Tabelas e políticas RLS no Supabase | ✅ [`../supabase/`](../supabase/LEIA-ME.md): execute do 01 ao 06, em ordem, no SQL Editor |
+| Tabelas e políticas RLS no Supabase | ✅ [`../supabase/`](../supabase/LEIA-ME.md): execute do 01 ao 07, em ordem, no SQL Editor |
 | Organizador semanal: 7 compartimentos (servo 0 = segunda … 6 = domingo) | ✅ Páginas Medicamentos e Programação |
 | Horários próprios de cada medicamento, definidos no cadastro | ✅ Página Medicamentos (requer `supabase/06` e firmware 2.5) |
 | "Tomado" automático quando a porta abre e fecha no horário programado | ✅ Páginas Hoje e Relatório (requer `supabase/06`) |
@@ -203,7 +203,7 @@ A interface separa o que o dispositivo **informou** do que **realmente aconteceu
 | Pendente | O horário ainda não chegou. |
 | Tentativa registrada | O dispositivo começou o acionamento, mas ainda não informou o resultado. |
 | Acionamento realizado | O dispositivo informou que abriu e fechou a gaveta ou ligou a bomba. Isso não prova que o medicamento foi retirado. |
-| Tomado | No horário programado, o dispositivo abriu e fechou o compartimento (ou ligou a bomba). No "Liberar agora", o usuário tocou em "Retirei". Sem sensor, não prova a ingestão. |
+| Tomado | O dispositivo abriu e fechou o compartimento (ou ligou a bomba), no horário programado ou no "Liberar agora" (requer `supabase/07`). Marcado automaticamente; sem sensor, não prova a ingestão. |
 | Liberação por sensor | Exige sensor. O hardware atual não tem, então este estado ainda não é usado. |
 | Falha | O dispositivo informou um erro ou reiniciou durante o acionamento. |
 | Não aberta (atraso) | O horário passou da tolerância de 10 min (ex.: sem energia). A gaveta não foi aberta. |

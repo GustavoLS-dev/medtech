@@ -161,3 +161,26 @@ test('o 06 pode ser executado de novo', async () => {
   await db.exec(await arquivo('supabase/06-horarios-por-medicamento.sql'));
   assert.equal((await agenda(db, token)).slots.length, 7);
 });
+
+// supabase/07: o "Liberar agora" também marca como tomado.
+test('07: "Liberar agora" que abriu e fechou fica como tomado; falha não', async () => {
+  const db = await novoBanco([...SCRIPTS, '07-liberar-agora-tomado.sql']);
+  const { a, token } = await preparar(db);
+  const med = await remedio(db, a, 'Losartana', '{03:00}');
+  const pedir = async () => (await como(db, a, async () => (await um(db, `select public.medtech_request_medication($1) as r`, [med.id])).r)).id;
+  const rel = (pedido, uid, tipo) => como(db, null, async () => (await um(db,
+    `select public.medtech_device_request_report($1, $2, $3, $4) as r`, [token, uid, tipo, pedido])).r);
+
+  const p1 = await pedir();
+  await rel(p1, 'req-tomado-01-a', 'attempt');
+  await rel(p1, 'req-tomado-01-x', 'actuated');
+  const p2 = await pedir();
+  await rel(p2, 'req-falha-001-a', 'attempt');
+  await rel(p2, 'req-falha-001-f', 'failed');
+
+  const doses = await como(db, a, () => db.query(
+    `select status, user_confirmed_at is not null as tomado from public.doses order by scheduled_for`));
+  assert.deepEqual(doses.rows.map(d => [d.status, d.tomado]), [['actuated', true], ['failed', false]]);
+
+  await db.exec(await arquivo('supabase/07-liberar-agora-tomado.sql'));  // pode ser executado de novo
+});

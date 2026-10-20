@@ -31,7 +31,7 @@ const UI = (function () {
     pending:          { label: "Pendente",               tone: "neutral", help: "O horário ainda não chegou." },
     attempt:          { label: "Tentativa registrada",   tone: "info",    help: "O dispositivo começou o acionamento, mas ainda não informou o resultado." },
     actuated:         { label: "Acionamento realizado",  tone: "violet",  help: "O dispositivo informou que abriu e fechou a gaveta ou ligou a bomba pelo tempo configurado. Isso não prova que o medicamento foi retirado." },
-    user_confirmed:   { label: "Tomado",                 tone: "success", help: "Nos horários programados: o dispensador abriu e fechou o compartimento (ou ligou a bomba). No “Liberar agora”: você tocou em Retirei. Sem sensor, não prova a ingestão." },
+    user_confirmed:   { label: "Tomado",                 tone: "success", help: "O dispensador abriu e fechou o compartimento (ou ligou a bomba), no horário programado ou no “Liberar agora”. Marcado automaticamente; sem sensor, não prova a ingestão." },
     sensor_confirmed: { label: "Liberação por sensor",   tone: "success", help: "Exige sensor no compartimento. O dispensador atual não tem sensor, então este estado ainda não é usado." },
     failed:           { label: "Falha",                  tone: "danger",  help: "O dispositivo informou um erro ou reiniciou durante o acionamento." },
     missed:           { label: "Não aberta (atraso)",    tone: "warning", help: "O dispositivo estava sem energia, sem hora ou sem agenda válida no horário. Passada a tolerância, a gaveta não é aberta." },
