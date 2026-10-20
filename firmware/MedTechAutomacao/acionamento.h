@@ -31,6 +31,7 @@ struct Acionamento {
   bool gaveta = false;       // abre o compartimento do dia (capsula)
   char pedido[37] = "";      // "Liberar agora" de um medicamento: id do pedido
   uint8_t indice = 0;        // compartimento do organizador (0 = segunda ... 6 = domingo)
+  uint8_t proximos = 0;      // "Liberar agora": compartimentos que ainda vao abrir (bit i = indice i)
   uint8_t periodo = SEM_PERIODO;
   uint32_t horario = 0;
   uint32_t tempoBombaMs = TEMPO_BOMBA_PADRAO_S * 1000UL;
@@ -266,6 +267,15 @@ void atualizarAcionamento() {
     case Fase::ASSENTANDO:
       if (millis() - job.marco < ASSENTAR_MS) return;
       if (!Hardware::desligarCanal(c.canal)) { falharAcionamento("falha_i2c"); return; }
+      if (job.proximos) {
+        // "Liberar agora": abre o proximo dia do medicamento (um servo por vez).
+        uint8_t proximo = 0;
+        while (!(job.proximos & (1 << proximo))) proximo++;
+        job.proximos &= ~(1 << proximo);
+        Serial.printf("[SERVO] Compartimento %s fechado. Proximo: %s.\n", NOMES_DIAS[job.indice], NOMES_DIAS[proximo]);
+        abrirCompartimento(proximo);
+        return;
+      }
       Serial.printf("[SERVO] Compartimento %s fechado; PWM desligado.%s\n", NOMES_DIAS[job.indice],
                     job.teste ? " (teste, sem registro)" : " Registrando no site.");
       avisar("Gaveta fechada", job.teste ? "Teste concluido" : "Registrando...", 5000);
@@ -363,8 +373,9 @@ bool atenderPedido(uint32_t agora) {
 }
 
 // "Liberar agora" de um medicamento: so com internet (o servidor autoriza cada
-// pedido uma unica vez). Liquido liga a bomba; capsula abre a gaveta do dia
-// informado. Nao grava registro de horario: o horario programado continua valendo.
+// pedido uma unica vez). Liquido liga a bomba uma vez; capsula abre, um por vez,
+// os compartimentos de todos os dias do medicamento (segunda a domingo).
+// Nao grava registro de horario: o horario programado continua valendo.
 bool atenderPedidoRemedio(uint32_t agora) {
   if (totalPedidosRemedio == 0 || bloqueioAcionamento(agora)) return false;
   const PedidoRemedio p = pedidosRemedio[0];
@@ -373,10 +384,13 @@ bool atenderPedidoRemedio(uint32_t agora) {
   memmove(&pedidosRemedio[0], &pedidosRemedio[1], sizeof(PedidoRemedio) * (totalPedidosRemedio - 1));
   totalPedidosRemedio--;
 
-  uint8_t indice = indiceDoDia(p.diaSemana);
-  Serial.printf("[PEDIDO] Medicamento %s: %s.\n", p.liquido ? "liquido" : "capsula",
-                p.liquido ? "bomba" : NOMES_DIAS[indice]);
-  avisar("Pedido do site", p.liquido ? "Liquido - bomba" : NOMES_DIAS[indice], 30000);
+  uint8_t indice = 0;
+  while (indice < NUM_COMPARTIMENTOS - 1 && !(p.dias & (1 << indice))) indice++;
+  char dias[32] = "";
+  for (uint8_t i = 0; i < NUM_COMPARTIMENTOS; i++)
+    if (p.dias & (1 << i)) { if (dias[0]) strlcat(dias, " ", sizeof(dias)); strlcat(dias, NOMES_DIAS[i], sizeof(dias)); }
+  Serial.printf("[PEDIDO] Medicamento %s: %s.\n", p.liquido ? "liquido" : "capsula", p.liquido ? "bomba" : dias);
+  avisar("Pedido do site", p.liquido ? "Liquido - bomba" : dias, 30000);
 
   Evento tentativa = {};
   tentativa.tipo = EV_TENTATIVA; tentativa.periodo = SEM_PERIODO; tentativa.ocorridoEm = agora;
@@ -393,6 +407,7 @@ bool atenderPedidoRemedio(uint32_t agora) {
   job.teste = false;
   strlcpy(job.pedido, p.id, sizeof(job.pedido));
   job.indice = indice;
+  job.proximos = p.liquido ? 0 : uint8_t(p.dias & ~(1 << indice));
   job.bomba = p.liquido;
   job.gaveta = !p.liquido;
   iniciarAcionamento();

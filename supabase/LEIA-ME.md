@@ -10,6 +10,10 @@ Arquivos, executados **nesta ordem**:
 3. [03-liberar-agora-e-tempo-real.sql](03-liberar-agora-e-tempo-real.sql): botão "Liberar período" (tabela `dispense_requests` e função `medtech_request_dispense`), agenda com pedidos para o firmware 2.1 e atualização em tempo real (Supabase Realtime) das tabelas do site.
 4. [04-liquidos-e-liberar-medicamento.sql](04-liquidos-e-liberar-medicamento.sql): medicamento **líquido** (coluna `medications.form`: `solid` ou `liquid`) liberado pela **bomba**, tempo da bomba (`dispenser_settings.pump_seconds`, 1 a 30 s, padrão 5), botão **"Liberar agora" em cada medicamento** (`medtech_request_medication`) e o registro desse pedido pelo firmware 2.2 (`medtech_device_request_report`).
 
+5. [05-liberar-todos-os-dias.sql](05-liberar-todos-os-dias.sql): o "Liberar agora" de uma cápsula abre, um por vez, os compartimentos de **todos os dias** do medicamento (coluna `dispense_requests.weekdays`; requer o firmware 2.4).
+
+Se você já executou do 01 ao 04, **execute só o 05**. Nunca rode de novo um script antigo sozinho: rodar o 01, o 02 ou o 03 depois dos seguintes desfaz as atualizações deles. Se isso acontecer, execute de novo, em ordem, todos os que vêm depois.
+
 Se você já executou do 01 ao 03, **execute só o 04**. Se parou antes, execute os que faltam em ordem, do mesmo jeito descrito abaixo. Todos podem ser executados de novo sem perder dados. Se rodar o 01 de novo, rode o 02, o 03 e o 04 logo depois.
 
 Depois de executar o 04, **grave o firmware 2.2** no ESP32. O firmware 2.1 continua funcionando, mas não conhece a bomba: ele abriria a gaveta também nos horários só com líquido e ignoraria o "Liberar agora" dos medicamentos.

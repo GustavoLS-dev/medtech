@@ -184,3 +184,22 @@ test('o 04 pode ser executado de novo', async () => {
   assert.equal((await como(db, a, () => um(db, `select form from public.medications`))).form, 'liquid');
   assert.equal((await como(db, a, () => um(db, `select count(*)::int as n from public.dispense_requests`))).n, 1);
 });
+
+// supabase/05: o pedido por medicamento leva todos os dias dele.
+test('05: pedido de cápsula leva todos os dias do medicamento para a agenda', async () => {
+  const db = await novoBanco([...SCRIPTS, '05-liberar-todos-os-dias.sql']);
+  const { a, token } = await preparar(db);
+  const med = await remedio(db, a, 'Todos os dias', 'solid', TODOS);
+  const p = await pedir(db, a, med.id);
+  assert.deepEqual(p.weekdays, [0, 1, 2, 3, 4, 5, 6]);
+  assert.equal(p.weekday, hoje());
+  const r = await agenda(db, token);
+  assert.deepEqual(r.medication_requests, [{ id: p.id, weekday: hoje(), weekdays: [0, 1, 2, 3, 4, 5, 6], form: 'solid' }]);
+
+  // Pedido criado antes do 05 (sem weekdays): manda só o dia dele.
+  await db.query(`update public.dispense_requests set weekdays = null`);
+  assert.deepEqual((await agenda(db, token)).medication_requests[0].weekdays, [hoje()]);
+
+  await db.exec(await arquivo('supabase/05-liberar-todos-os-dias.sql'));
+  assert.equal((await agenda(db, token)).medication_requests.length, 1, 'o 05 pode ser executado de novo');
+});

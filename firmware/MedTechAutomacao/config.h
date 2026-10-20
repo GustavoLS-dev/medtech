@@ -8,7 +8,7 @@
 // ============================================================================
 namespace MedTechConfig {
 
-constexpr char FIRMWARE_VERSION[] = "medtech-auto-2.3.0";
+constexpr char FIRMWARE_VERSION[] = "medtech-auto-2.4.0";
 
 // Organizador semanal: um compartimento (servo) por dia.
 // Indice 0 = segunda ... 6 = domingo (mesma ordem do site).

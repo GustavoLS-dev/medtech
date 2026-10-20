@@ -255,8 +255,7 @@ const Data = (function () {
 
   /**
    * Texto da confirmação do "Liberar agora" de um medicamento.
-   * O compartimento segue a mesma regra do banco: hoje, se ele está
-   * programado para hoje; senão, o próximo dia programado.
+   * Cápsula: abre, um por vez, o compartimento de cada dia dele (supabase/05).
    */
   function releaseText(med, settings) {
     if (med.form === "liquid") {
@@ -266,16 +265,16 @@ const Data = (function () {
           " s. Isso não conta como o horário programado."
       };
     }
-    const today = spParts(new Date()).weekday;
-    let weekday = today;
-    for (let n = 0; n < 7; n++) {
-      if (med.weekdays.indexOf((today + n) % 7) !== -1) { weekday = (today + n) % 7; break; }
-    }
+    const days = DAYS.filter(function (d) { return med.weekdays.indexOf(d.weekday) !== -1; });
+    const names = days.map(function (d) { return d.name.toLowerCase(); });
+    const list = names.length > 1 ? names.slice(0, -1).join(", ") + " e " + names[names.length - 1] : names[0];
     return {
       title: "Liberar " + med.name + " agora?",
-      message: "Em até 15 segundos o dispensador abre o compartimento de " + dayOf(weekday).name.toLowerCase() +
-        " (servo " + (compartmentOf(weekday) - 1) + ") por " + settings.open_seconds +
-        " s e fecha. Isso não conta como o horário programado."
+      message: "Em até 15 segundos o dispensador abre, um por vez, " +
+        (days.length > 1 ? "os compartimentos de " : "o compartimento de ") + list +
+        ". Cada um fica aberto " + settings.open_seconds + " s" +
+        (days.length > 1 ? " (cerca de " + Math.ceil(days.length * (settings.open_seconds + 3) / 60) + " min no total)" : "") +
+        ". Isso não conta como o horário programado."
     };
   }
 

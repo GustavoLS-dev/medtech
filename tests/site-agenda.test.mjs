@@ -130,18 +130,17 @@ test('hoje: liberações manuais não entram nos horários e a última fica por 
   assert.equal(ultimas.m2.id, 'd3');
 });
 
-test('confirmação do "Liberar agora": bomba para líquido, compartimento do dia para cápsula', async () => {
+test('confirmação do "Liberar agora": bomba para líquido, todos os dias para cápsula', async () => {
   const Data = await carregarData();
   const conf = { ...CONFIG, pump_seconds: 7 };
   assert.match(Data.releaseText(remedio({ form: 'liquid' }), conf).message, /liga a bomba por 7 s/);
 
-  const hoje = Data.spParts(new Date()).weekday;
-  const nomeHoje = Data.dayOf(hoje).name.toLowerCase();
-  assert.ok(Data.releaseText(remedio(), conf).message.includes(`compartimento de ${nomeHoje} (servo ${Data.compartmentOf(hoje) - 1}) por 60 s`));
+  const todos = Data.releaseText(remedio(), conf).message;
+  assert.ok(todos.includes('os compartimentos de segunda, terça, quarta, quinta, sexta, sábado e domingo'), todos);
+  assert.ok(todos.includes('cerca de 8 min'), 'tempo total com 60 s por dia');
 
-  const amanha = (hoje + 1) % 7;
-  const texto = Data.releaseText(remedio({ weekdays: [amanha] }), conf).message;
-  assert.match(texto, new RegExp(`compartimento de ${Data.dayOf(amanha).name.toLowerCase()} `), 'próximo dia programado');
+  const um = Data.releaseText(remedio({ weekdays: [2] }), conf).message;
+  assert.ok(um.includes('o compartimento de terça. Cada um fica aberto 60 s.'), um);
   assert.equal(Data.formOf('liquid').label, 'Líquido');
   assert.equal(Data.formOf(undefined).key, 'solid');
 });

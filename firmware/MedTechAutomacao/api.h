@@ -23,11 +23,12 @@ constexpr int MAX_PEDIDOS = 3;
 Pedido pedidos[MAX_PEDIDOS];
 uint8_t totalPedidos = 0;
 
-// "Liberar agora" de um medicamento (supabase/04): capsula abre a gaveta do
-// dia informado; liquido liga a bomba. Nao marca nenhum horario como tratado.
+// "Liberar agora" de um medicamento (supabase/04 e 05): capsula abre, um por
+// vez, os compartimentos de todos os dias do medicamento; liquido liga a
+// bomba. Nao marca nenhum horario como tratado.
 struct PedidoRemedio {
   char id[37];        // uuid do pedido
-  uint8_t diaSemana;  // compartimento: 0 = domingo ... 6 = sabado
+  uint8_t dias;       // bit i = compartimento i (0 = segunda ... 6 = domingo)
   bool liquido;
 };
 PedidoRemedio pedidosRemedio[MAX_PEDIDOS];
@@ -194,10 +195,21 @@ bool converterPedidosRemedio(JsonDocument &doc, PedidoRemedio *destino, uint8_t 
     int dia = p["weekday"];
     bool liquido = !strcmp(forma, "liquid");
     if (dia < 0 || dia > 6 || (!liquido && strcmp(forma, "solid"))) return false;
+    // Banco sem o 05: so o dia informado em "weekday".
+    uint8_t dias = 1 << MedTechConfig::indiceDoDia(dia);
+    if (!p["weekdays"].isNull()) {
+      if (!p["weekdays"].is<JsonArray>()) return false;
+      dias = 0;
+      for (JsonVariant d : p["weekdays"].as<JsonArray>()) {
+        if (!d.is<int>() || d.as<int>() < 0 || d.as<int>() > 6) return false;
+        dias |= 1 << MedTechConfig::indiceDoDia(d.as<int>());
+      }
+      if (!dias) return false;
+    }
     if (total < MAX_PEDIDOS) {
       PedidoRemedio &novo = destino[total++];
       strlcpy(novo.id, id, sizeof(novo.id));
-      novo.diaSemana = uint8_t(dia);
+      novo.dias = dias;
       novo.liquido = liquido;
     }
   }
