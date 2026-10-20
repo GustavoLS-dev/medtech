@@ -15,13 +15,15 @@ Feito apenas com **HTML, CSS e JavaScript puro**. Não usa Vite, frameworks nem 
 | Layout, identidade visual e responsividade | ✅ Pronto |
 | Login, cadastro, confirmação de e-mail e recuperação de senha | ✅ Supabase Auth |
 | Proteção das páginas privadas (verificação de sessão) | ✅ Pronto |
-| Tabelas e políticas RLS no Supabase | ✅ [`../supabase/`](../supabase/LEIA-ME.md): execute do 01 ao 04, em ordem, no SQL Editor |
-| Organizador semanal: 7 compartimentos (servo 0 = segunda … 6 = domingo) × manhã/tarde/noite | ✅ Páginas Medicamentos e Programação |
+| Tabelas e políticas RLS no Supabase | ✅ [`../supabase/`](../supabase/LEIA-ME.md): execute do 01 ao 06, em ordem, no SQL Editor |
+| Organizador semanal: 7 compartimentos (servo 0 = segunda … 6 = domingo) | ✅ Páginas Medicamentos e Programação |
+| Horários próprios de cada medicamento, definidos no cadastro | ✅ Página Medicamentos (requer `supabase/06` e firmware 2.5) |
+| "Tomado" automático quando a porta abre e fecha no horário programado | ✅ Páginas Hoje e Relatório (requer `supabase/06`) |
 | Automação ligada/desligada pelo site (sem terminal) | ✅ Página Programação |
-| "Liberar período" e atualização em tempo real | ✅ Página Hoje (requer `supabase/03` e firmware 2.1) |
-| Medicamento líquido (bomba pelo relé) e "Liberar agora" em cada medicamento | ✅ Páginas Medicamentos, Hoje e Programação (requer `supabase/04` e firmware 2.2) |
+| Atualização em tempo real | ✅ Requer `supabase/03` |
+| Medicamento líquido (bomba pelo relé) e "Liberar agora" em cada medicamento | ✅ Páginas Medicamentos e Hoje (requer `supabase/04`, `05` e firmware 2.4+) |
 | Vinculação e status do ESP32 | ✅ Página Dispositivo |
-| Horários do dia, relatório diário e confirmação de retirada | ✅ Páginas Hoje e Relatório |
+| Horários do dia e relatório diário | ✅ Páginas Hoje e Relatório |
 | Firmware com automação dos servos | ✅ [`../firmware/MedTechAutomacao`](../firmware/MedTechAutomacao/LEIA-ME.md), **sem teste físico registrado** |
 | Sensor de liberação | ❌ Não existe no hardware atual |
 | Bomba | ✅ Ligada por tempo (1 a 30 s, definido no site) nos horários e pedidos com líquido, **sem teste físico registrado** |
@@ -69,7 +71,7 @@ medtech/
 └── assets/                 Logo e favicon
 ```
 
-A ordem dos dias e os períodos ficam em `DAYS` e `PERIODS`, no início de `js/data.js`. O compartimento de cada dia segue a mesma regra do firmware (`firmware/MedTechAutomacao/config.h`): segunda = servo 0 … domingo = servo 6.
+A ordem dos dias fica em `DAYS`, no início de `js/data.js`; `PERIODS` só dá o rótulo (manhã, tarde, noite) de cada hora. O compartimento de cada dia segue a mesma regra do firmware (`firmware/MedTechAutomacao/config.h`): segunda = servo 0 … domingo = servo 6.
 
 ### Ordem dos scripts
 
@@ -201,7 +203,7 @@ A interface separa o que o dispositivo **informou** do que **realmente aconteceu
 | Pendente | O horário ainda não chegou. |
 | Tentativa registrada | O dispositivo começou o acionamento, mas ainda não informou o resultado. |
 | Acionamento realizado | O dispositivo informou que abriu e fechou a gaveta ou ligou a bomba. Isso não prova que o medicamento foi retirado. |
-| Retirada confirmada | O usuário tocou em "Retirei" no site (confirmação manual). |
+| Tomado | No horário programado, o dispositivo abriu e fechou o compartimento (ou ligou a bomba). No "Liberar agora", o usuário tocou em "Retirei". Sem sensor, não prova a ingestão. |
 | Liberação por sensor | Exige sensor. O hardware atual não tem, então este estado ainda não é usado. |
 | Falha | O dispositivo informou um erro ou reiniciou durante o acionamento. |
 | Não aberta (atraso) | O horário passou da tolerância de 10 min (ex.: sem energia). A gaveta não foi aberta. |

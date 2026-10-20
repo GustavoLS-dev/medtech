@@ -1,12 +1,10 @@
 /* ==========================================================================
    MedTech — pages/programacao.js  (programacao.html)
-   Configuração do organizador (horários dos períodos, tempo aberto e
-   automação) e a grade da semana: dias × manhã/tarde/noite.
+   Configuração do dispensador (tempo da gaveta, tempo da bomba e automação)
+   e a grade da semana: dias × horários dos medicamentos.
    ========================================================================== */
 
 (function () {
-  const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
-
   const pageMessage = document.getElementById("page-message");
   const grid = document.getElementById("week-grid");
   const settingsForm = document.getElementById("settings-form");
@@ -14,9 +12,6 @@
   const saveButton = document.getElementById("save-settings");
   const autoButton = document.getElementById("auto-button");
   const inputs = {
-    morning_time: document.getElementById("morning-time"),
-    afternoon_time: document.getElementById("afternoon-time"),
-    night_time: document.getElementById("night-time"),
     open_seconds: document.getElementById("open-seconds"),
     pump_seconds: document.getElementById("pump-seconds")
   };
@@ -26,9 +21,11 @@
   let settings = Data.DEFAULT_SETTINGS;
 
   // Na coluna de hoje, o nome fica colorido pelo que aconteceu (verde = retirado).
-  function chipFor(med, day, period, today) {
+  function chipFor(med, day, time, today) {
     if (day.weekday !== today.weekday) return '<span class="chip">' + UI.escapeHtml(med.name) + "</span>";
-    const dose = todayDoses.find(function (d) { return d.medication_id === med.id && d.period === period; });
+    const dose = todayDoses.find(function (d) {
+      return d.medication_id === med.id && d.period && Data.spParts(new Date(d.scheduled_for)).time === time;
+    });
     return dose ? UI.medChip(med.name, Data.doseState(dose)) : '<span class="chip">' + UI.escapeHtml(med.name) + "</span>";
   }
 
@@ -37,7 +34,7 @@
     document.getElementById("auto-dot").className = "status-dot status-dot--" + (on ? "online" : "offline");
     document.getElementById("auto-label").textContent = on ? "Automação ligada" : "Automação desligada";
     document.getElementById("auto-text").textContent = on
-      ? "Em cada horário programado, o dispensador abre o compartimento do dia (cápsulas) e liga a bomba (líquidos), sem nenhum comando manual."
+      ? "Em cada horário dos medicamentos, o dispensador abre o compartimento do dia (cápsulas) e liga a bomba (líquidos), sem nenhum comando manual."
       : "O dispensador recebe a agenda, mas não abre nenhum compartimento nem liga a bomba. Ligue depois de testar os servos e a bomba.";
     autoButton.textContent = on ? "Desligar automação" : "Ligar automação";
     autoButton.className = "btn " + (on ? "btn--secondary" : "btn--primary");
@@ -49,43 +46,43 @@
   }
 
   function renderGrid() {
-    if (medications.length === 0) {
-      grid.innerHTML = UI.emptyState("calendar", "Nenhum medicamento cadastrado",
-        "Cadastre um medicamento com os dias e os períodos na página Medicamentos.");
+    const times = Data.timesOf(medications);
+    if (times.length === 0) {
+      grid.innerHTML = UI.emptyState("calendar", "Nenhum horário programado",
+        "Cadastre um medicamento ativo com os dias e os horários na página Medicamentos.");
       return;
     }
     const today = Data.spParts(new Date());
-    const head = "<tr><th scope=\"col\">Período</th>" + Data.DAYS.map(function (d) {
+    const head = "<tr><th scope=\"col\">Horário</th>" + Data.DAYS.map(function (d) {
       const isToday = d.weekday === today.weekday;
       return '<th scope="col"' + (isToday ? ' class="is-today"' : "") + ">" + d.short + (isToday ? " (hoje)" : "") +
         '<br><span class="text-xs text-subtle">servo ' + (Data.compartmentOf(d.weekday) - 1) + "</span></th>";
     }).join("") + "</tr>";
-    const rows = Data.PERIODS.map(function (p) {
-      return '<tr><th scope="row">' + p.label + '<br><span class="text-xs text-subtle">' + UI.escapeHtml(Data.periodTime(settings, p.key)) + "</span></th>" +
+    const rows = times.map(function (t) {
+      return '<tr><th scope="row">' + UI.escapeHtml(t) + '<br><span class="text-xs text-subtle">' + Data.periodOfTime(t).label + "</span></th>" +
         Data.DAYS.map(function (d) {
-          const meds = Data.medicationsFor(medications, d.weekday, p.key);
+          const meds = Data.medicationsFor(medications, d.weekday, t);
           const cls = (d.weekday === today.weekday ? "is-today" : "") + (meds.length ? "" : " is-empty");
           return '<td class="' + cls.trim() + '">' + (meds.length
-            ? meds.map(function (m) { return chipFor(m, d, p.key, today); }).join("")
+            ? meds.map(function (m) { return chipFor(m, d, t, today); }).join("")
             : "—") + "</td>";
         }).join("") + "</tr>";
     }).join("");
-    // No celular a tabela larga vira uma lista: um dia por linha, com os 3 períodos.
+    // No celular a tabela larga vira uma lista: um dia por linha, com os horários dele.
     const list = '<ul class="week-list">' + Data.DAYS.map(function (d) {
       const isToday = d.weekday === today.weekday;
+      const dayTimes = Data.timesOf(medications, d.weekday);
       return '<li class="week-list__day' + (isToday ? " is-today" : "") + '">' +
         '<p class="week-list__name">' + d.name + (isToday ? " (hoje)" : "") +
         ' <span class="text-xs text-subtle">servo ' + (Data.compartmentOf(d.weekday) - 1) + "</span></p>" +
-        '<div class="week-list__periods">' + Data.PERIODS.map(function (p) {
-          const meds = Data.medicationsFor(medications, d.weekday, p.key);
-          return '<div class="week-list__period"><span class="week-list__label">' + p.label + " · " +
-            UI.escapeHtml(Data.periodTime(settings, p.key)) + "</span>" +
-            (meds.length ? meds.map(function (m) { return chipFor(m, d, p.key, today); }).join("") : '<span class="text-subtle">—</span>') +
-            "</div>";
-        }).join("") + "</div></li>";
+        '<div class="week-list__periods">' + (dayTimes.length ? dayTimes.map(function (t) {
+          const meds = Data.medicationsFor(medications, d.weekday, t);
+          return '<div class="week-list__period"><span class="week-list__label">' + UI.escapeHtml(t) + "</span>" +
+            meds.map(function (m) { return chipFor(m, d, t, today); }).join("") + "</div>";
+        }).join("") : '<span class="text-subtle">Nada programado</span>') + "</div></li>";
     }).join("") + "</ul>";
 
-    grid.innerHTML = '<table class="week-grid"><caption class="sr-only">Medicamentos por dia e período</caption>' +
+    grid.innerHTML = '<table class="week-grid"><caption class="sr-only">Medicamentos por dia e horário</caption>' +
       '<colgroup><col class="week-grid__period"></colgroup><thead>' +
       head + "</thead><tbody>" + rows + "</tbody></table>" + list;
   }
@@ -93,18 +90,9 @@
   settingsForm.addEventListener("submit", async function (event) {
     event.preventDefault();
     const values = {
-      morning_time: inputs.morning_time.value,
-      afternoon_time: inputs.afternoon_time.value,
-      night_time: inputs.night_time.value,
       open_seconds: Number(inputs.open_seconds.value),
       pump_seconds: Number(inputs.pump_seconds.value)
     };
-    if (![values.morning_time, values.afternoon_time, values.night_time].every(function (t) { return TIME_PATTERN.test(t); })) {
-      return UI.showAlert(settingsMessage, "danger", "Horário inválido", "Preencha os três horários.");
-    }
-    if (!(values.morning_time < values.afternoon_time && values.afternoon_time < values.night_time)) {
-      return UI.showAlert(settingsMessage, "danger", "Horários fora de ordem", "A manhã precisa vir antes da tarde, e a tarde antes da noite.");
-    }
     if (!Number.isInteger(values.open_seconds) || values.open_seconds < 5 || values.open_seconds > 300) {
       return UI.showAlert(settingsMessage, "danger", "Tempo inválido", "Use de 5 a 300 segundos.");
     }
@@ -118,7 +106,7 @@
       UI.clearAlert(settingsMessage);
       renderSettings();
       renderGrid();
-      UI.toast("Horários salvos. O dispensador recebe a mudança em até 15 segundos.", "success");
+      UI.toast("Salvo. O dispensador recebe a mudança em até 15 segundos.", "success");
     } catch (error) {
       const info = Data.describeError(error);
       UI.showAlert(settingsMessage, "danger", info.title, info.message);
@@ -132,7 +120,7 @@
     if (turningOn) {
       const ok = await UI.confirm({
         title: "Ligar a automação?",
-        message: "A partir de agora, em cada horário programado, o dispensador abre o compartimento do dia (cápsulas) e liga a bomba pelo relé (líquidos). Confirme que os servos e a bomba foram testados.",
+        message: "A partir de agora, em cada horário dos medicamentos, o dispensador abre o compartimento do dia (cápsulas) e liga a bomba pelo relé (líquidos), e marca os medicamentos como tomados. Confirme que os servos e a bomba foram testados.",
         confirmText: "Ligar automação"
       });
       if (!ok) return;

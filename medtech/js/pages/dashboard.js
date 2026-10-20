@@ -1,7 +1,8 @@
 /* ==========================================================================
    MedTech — pages/dashboard.js  (dashboard.html)
-   Horários de hoje (manhã, tarde, noite) ligados aos registros enviados
-   pelo ESP32. Atualiza a cada 15 s enquanto a página está visível.
+   Horários de hoje (as horas de cada medicamento) ligados aos registros
+   enviados pelo ESP32, e o "Liberar agora" de cada medicamento.
+   Atualiza a cada 15 s enquanto a página está visível.
    ========================================================================== */
 
 (function () {
@@ -31,19 +32,12 @@
     setStat("stat-problems", count(["failed", "missed", "unknown"]));
   }
 
-  // Ação de cada horário: confirmar retirada, aguardar pedido ou liberar agora.
-  function actionHtml(s, requests) {
-    if (s.state === "actuated") {
-      return '<button type="button" class="btn btn--primary btn--sm" data-confirm="' + UI.escapeHtml(s.doses[0].scheduled_for) +
-        '" data-period="' + UI.escapeHtml(s.period.key) + '">Retirei</button>';
-    }
-    if (s.doses.length) return "";
-    const waiting = requests.some(function (r) { return r.period === s.period.key; });
-    if (waiting) {
-      return '<span class="badge badge--info"><span class="spinner spinner--sm" aria-hidden="true"></span>Aguardando o dispensador…</span>';
-    }
-    return '<button type="button" class="btn btn--secondary btn--sm" data-dispense="' + UI.escapeHtml(s.period.key) + '">' +
-      Icons.get("package") + "Liberar período</button>";
+  // Horário acionado e ainda não marcado como tomado (ex.: registros antigos): "Retirei".
+  // Nos horários programados, o banco já marca como tomado quando a porta abre e fecha.
+  function actionHtml(s) {
+    if (s.state !== "actuated") return "";
+    return '<button type="button" class="btn btn--primary btn--sm" data-confirm="' + UI.escapeHtml(s.doses[0].scheduled_for) +
+      '" data-period="' + UI.escapeHtml(s.doses[0].period) + '">Retirei</button>';
   }
 
   // "Liberar agora" de cada medicamento, com o resultado da última liberação manual de hoje.
@@ -77,7 +71,7 @@
     }).join("") + "</ul>";
   }
 
-  function renderToday(slots, requests, hasMedications) {
+  function renderToday(slots, hasMedications) {
     const today = Data.dayOf(Data.spParts(new Date()).weekday);
     document.getElementById("today-title").lastChild.textContent =
       today.name + " · compartimento " + Data.compartmentOf(today.weekday) + " (servo " + (Data.compartmentOf(today.weekday) - 1) + ")";
@@ -85,7 +79,7 @@
     if (slots.length === 0) {
       list.innerHTML = hasMedications
         ? UI.emptyState("calendar", "Nada para hoje", "Nenhum medicamento ativo está programado para " + today.name.toLowerCase() + ".")
-        : UI.emptyState("pill", "Nenhum medicamento cadastrado", "Cadastre um medicamento com os dias e os períodos na página Medicamentos.");
+        : UI.emptyState("pill", "Nenhum medicamento cadastrado", "Cadastre um medicamento com os dias e os horários na página Medicamentos.");
       return;
     }
     list.innerHTML = '<ul class="item-list">' + slots.map(function (s) {
@@ -96,7 +90,7 @@
           '<div><p class="item__title">' + UI.escapeHtml(s.period.label) + ' <span class="text-xs text-subtle">' + UI.escapeHtml(s.time) + "</span></p>" +
           '<div class="chips">' + s.items.map(function (i) { return UI.medChip(i.name, i.state); }).join("") + "</div></div>" +
         "</div>" +
-        '<div class="item__actions">' + UI.doseBadge(s.state) + actionHtml(s, requests) +
+        '<div class="item__actions">' + UI.doseBadge(s.state) + actionHtml(s) +
         "</div></li>";
     }).join("") + "</ul>";
   }
@@ -121,10 +115,10 @@
       ]);
       medications = results[0];
       settings = results[3];
-      const slots = Data.todaySlots(medications, results[1], settings);
+      const slots = Data.todaySlots(medications, results[1]);
       UI.clearAlert(pageMessage);
       renderStats(slots);
-      renderToday(slots, results[4], medications.length > 0);
+      renderToday(slots, medications.length > 0);
       renderRelease(medications, results[4], results[1]);
       renderDevice(results[2], settings);
     } catch (error) {
@@ -132,26 +126,6 @@
       list.innerHTML = "";
       releaseList.innerHTML = "";
       UI.showAlert(pageMessage, "danger", info.title, info.message);
-    }
-  }
-
-  async function dispenseNow(button) {
-    const period = Data.periodOf(button.getAttribute("data-dispense"));
-    const ok = await UI.confirm({
-      title: "Liberar a " + period.label.toLowerCase() + " agora?",
-      message: "Em até 15 segundos o dispensador libera todos os medicamentos deste período: liga a bomba se houver líquido e abre o compartimento de hoje se houver cápsula. Quando o horário normal chegar, ele não libera de novo.",
-      confirmText: "Liberar agora"
-    });
-    if (!ok) return;
-    UI.setButtonLoading(button, true);
-    try {
-      await Data.requestDispense(period.key);
-      UI.toast("Pedido enviado ao dispensador.", "success");
-      await load();
-    } catch (error) {
-      UI.setButtonLoading(button, false);
-      const info = Data.describeError(error);
-      UI.toast(info.title + ". " + info.message, "danger");
     }
   }
 
@@ -170,7 +144,7 @@
     try {
       if (release) await Data.requestMedication(med.id);
       else await Data.confirmDose(button.getAttribute("data-confirm-dose"));
-      UI.toast(release ? "Pedido enviado ao dispensador." : "Retirada confirmada.", "success");
+      UI.toast(release ? "Pedido enviado ao dispensador." : "Marcado como tomado.", "success");
       await load();
     } catch (error) {
       UI.setButtonLoading(button, false);
@@ -180,20 +154,18 @@
   });
 
   list.addEventListener("click", async function (event) {
-    const dispense = event.target.closest("button[data-dispense]");
-    if (dispense) return dispenseNow(dispense);
     const button = event.target.closest("button[data-confirm]");
     if (!button) return;
     const ok = await UI.confirm({
-      title: "Você retirou os medicamentos?",
-      message: "Confirme somente depois de pegar os medicamentos deste período no compartimento. A confirmação fica no relatório do dia.",
+      title: "Você tomou os medicamentos?",
+      message: "Confirme somente depois de pegar os medicamentos deste horário. A confirmação fica no relatório do dia.",
       confirmText: "Sim, retirei"
     });
     if (!ok) return;
     UI.setButtonLoading(button, true);
     try {
       await Data.confirmSlot(button.getAttribute("data-confirm"), button.getAttribute("data-period"));
-      UI.toast("Retirada confirmada.", "success");
+      UI.toast("Marcado como tomado.", "success");
       await load();
     } catch (error) {
       UI.setButtonLoading(button, false);

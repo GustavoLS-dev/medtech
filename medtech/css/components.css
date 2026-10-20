@@ -1164,6 +1164,33 @@ body.is-checking-session .app {
   box-shadow: var(--focus-ring);
 }
 
+/* ---------- Horários do medicamento (lista editável) ---------- */
+.time-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.time-list legend {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.time-list__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.time-list__item .input {
+  width: 8.5rem;
+}
+
 /* ---------- Grade semanal do organizador ---------- */
 .week-grid {
   width: 100%;

@@ -34,7 +34,7 @@
         <div class="page-header">
           <div>
             <h1>Medicamentos</h1>
-            <p class="page-header__desc">Cadastre cada medicamento com os dias e os períodos (manhã, tarde, noite) em que ele deve ser liberado.</p>
+            <p class="page-header__desc">Cadastre cada medicamento com os dias e os horários em que ele deve ser liberado.</p>
           </div>
           <div class="page-header__actions">
             <button type="button" class="btn btn--primary" id="new-med" disabled>
@@ -77,11 +77,12 @@
               </div>
 
               <div class="field">
-                <fieldset class="period-picker" id="med-periods" aria-describedby="med-periods-hint med-periods-error">
-                  <legend class="field__label">Períodos</legend>
+                <fieldset class="time-list" id="med-times" aria-describedby="med-times-hint med-times-error">
+                  <legend class="field__label">Horários</legend>
+                  <button type="button" class="btn btn--secondary btn--sm" id="add-time"><span data-icon="plus"></span>Adicionar horário</button>
                 </fieldset>
-                <p class="field__hint" id="med-periods-hint">Os horários de cada período são definidos em <a href="programacao.html">Programação</a>.</p>
-                <p class="field__error" id="med-periods-error"></p>
+                <p class="field__hint" id="med-times-hint">Valem para todos os dias marcados. No horário, o dispensador libera o medicamento e, quando a porta abre e fecha, ele é marcado como tomado.</p>
+                <p class="field__error" id="med-times-error"></p>
               </div>
 
               <label class="check"><input type="checkbox" id="med-enabled" checked> Programação ativa</label>
@@ -111,7 +112,7 @@
 
         <div class="alert alert--info section">
           <span data-icon="info"></span>
-          <div><strong>Como o dispensador recebe as alterações</strong>O ESP32 consulta a programação a cada 15 segundos. No horário de cada período, ele liga a bomba se houver líquido, abre o compartimento do dia se houver cápsula e registra cada medicamento daquele período. O botão “Liberar agora” libera só aquele medicamento, a qualquer hora, sem contar como o horário programado.</div>
+          <div><strong>Como o dispensador recebe as alterações</strong>O ESP32 consulta a programação a cada 15 segundos. No horário de cada medicamento, ele liga a bomba se houver líquido, abre o compartimento do dia se houver cápsula e marca como tomado cada medicamento daquele horário. O botão “Liberar agora” libera só aquele medicamento, a qualquer hora, sem contar como o horário programado.</div>
         </div>
       </main>
     </div>

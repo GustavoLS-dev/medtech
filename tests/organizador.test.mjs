@@ -5,8 +5,9 @@ import assert from 'node:assert/strict';
 import { arquivo, novoBanco, criarUsuario, como, um, novoToken, parear, horario } from './banco-util.mjs';
 
 const SCRIPTS = ['01-medtech-dispensador.sql', '02-organizador-semanal.sql'];
-// O site e o firmware 2.2 usam também o 03 e o 04; as colunas são conferidas com eles.
-const SCRIPTS_SITE = [...SCRIPTS, '03-liberar-agora-e-tempo-real.sql', '04-liquidos-e-liberar-medicamento.sql'];
+// O site e o firmware 2.5 usam também do 03 ao 06; as colunas são conferidas com eles.
+const SCRIPTS_SITE = [...SCRIPTS, '03-liberar-agora-e-tempo-real.sql', '04-liquidos-e-liberar-medicamento.sql',
+  '05-liberar-todos-os-dias.sql', '06-horarios-por-medicamento.sql'];
 const TODOS_OS_DIAS = [0, 1, 2, 3, 4, 5, 6];
 
 async function criarRemedio(db, uid, valores = {}) {
@@ -210,5 +211,5 @@ test('as colunas usadas pelo site (medtech/js/data.js) existem e são legíveis'
     await como(db, a, () => db.query(`select ${colunas} from public.${tabela}`));
   }
   await como(db, a, () => db.query(
-    `update public.medications set name = 'X', form = 'liquid', weekdays = '{1,3}', periods = '{night}', enabled = false, notes = 'n'`));
+    `update public.medications set name = 'X', form = 'liquid', weekdays = '{1,3}', times = '{08:30}', enabled = false, notes = 'n'`));
 });

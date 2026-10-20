@@ -9,8 +9,8 @@
 
 using MedTechConfig::NUM_COMPARTIMENTOS;
 
-constexpr uint8_t VERSAO_DADOS = 3;  // mude se as estruturas abaixo mudarem
-constexpr int MAX_HORARIOS_AGENDA = 21;  // 7 dias x 3 periodos
+constexpr uint8_t VERSAO_DADOS = 4;  // mude se as estruturas abaixo mudarem
+constexpr int MAX_HORARIOS_AGENDA = 56;  // 7 dias x ate 8 horarios diferentes
 constexpr int MAX_REGISTROS = 128;
 constexpr int MAX_FILA = 24;
 

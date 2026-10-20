@@ -1,13 +1,14 @@
 /* ==========================================================================
    MedTech — data.js
-   Acesso às tabelas e funções do Supabase (supabase/01 a 04).
+   Acesso às tabelas e funções do Supabase (supabase/01 a 06).
    Todas as consultas usam a sessão do usuário: o RLS do banco garante que
    cada conta só lê e altera as próprias linhas.
 
-   Organizador: um compartimento por DIA (servo 0 = segunda ... 6 = domingo)
-   e três períodos por dia (manhã, tarde, noite). O horário de cada período
-   fica na configuração do dispensador. Cápsulas saem pela gaveta do dia;
-   líquidos saem pela bomba (relé).
+   Organizador: um compartimento por DIA (servo 0 = segunda ... 6 = domingo).
+   Cada medicamento tem os próprios horários (times), iguais em todos os dias
+   marcados; um horário do organizador é dia + hora. Manhã/tarde/noite é só
+   um rótulo calculado pela hora. Cápsulas saem pela gaveta do dia; líquidos
+   saem pela bomba (relé).
    Depende de: supabase-config.js, auth.js
    ========================================================================== */
 
@@ -27,10 +28,11 @@ const Data = (function () {
     { weekday: 0, short: "Dom", name: "Domingo" }
   ];
 
+  // Rótulo do horário pela hora (mesma regra de medtech_period_of_time, supabase/06).
   const PERIODS = [
-    { key: "morning",   label: "Manhã", setting: "morning_time" },
-    { key: "afternoon", label: "Tarde", setting: "afternoon_time" },
-    { key: "night",     label: "Noite", setting: "night_time" }
+    { key: "morning",   label: "Manhã" },
+    { key: "afternoon", label: "Tarde" },
+    { key: "night",     label: "Noite" }
   ];
 
   // Forma do medicamento: por onde ele sai do dispensador.
@@ -40,15 +42,14 @@ const Data = (function () {
   };
 
   // Liberação pedida pelo botão "Liberar agora" de um medicamento (dose sem período).
-  const MANUAL_PERIOD = { key: "manual", label: "Liberação manual", setting: null };
+  const MANUAL_PERIOD = { key: "manual", label: "Liberação manual" };
 
   const DEFAULT_SETTINGS = {
-    morning_time: "08:00", afternoon_time: "13:00", night_time: "20:00",
     open_seconds: 60, pump_seconds: 5, automation_enabled: false, updated_at: null
   };
 
-  const MEDICATION_FIELDS = "id,name,form,weekdays,periods,enabled,notes,updated_at";
-  const SETTINGS_FIELDS = "morning_time,afternoon_time,night_time,open_seconds,pump_seconds,automation_enabled,updated_at";
+  const MEDICATION_FIELDS = "id,name,form,weekdays,times,enabled,notes,updated_at";
+  const SETTINGS_FIELDS = "open_seconds,pump_seconds,automation_enabled,updated_at";
   const DEVICE_FIELDS = "id,token_hint,firmware_version,last_seen_at,paired_at";
   const DOSE_FIELDS = "id,medication_id,medication_name,compartment,period,scheduled_for,status,detail,attempt_at,finished_at,user_confirmed_at";
   const EVENT_FIELDS = "id,event_type,period,scheduled_for,detail,occurred_at,received_at";
@@ -80,14 +81,11 @@ const Data = (function () {
     const code = error && error.code;
     const text = String((error && error.message) || "");
 
-    if (code === "23514" && text.indexOf("dispenser_settings_order") !== -1) {
-      return { title: "Horários fora de ordem", message: "O horário da manhã precisa ser antes do da tarde, e o da tarde antes do da noite." };
-    }
     if (code === "23514") {
-      return { title: "Dados recusados pelo servidor", message: "Confira o nome, os dias, os períodos e os horários." };
+      return { title: "Dados recusados pelo servidor", message: "Confira o nome, os dias e os horários." };
     }
     if (code === "42P01" || code === "42703" || code === "PGRST202" || code === "PGRST204" || code === "PGRST205") {
-      return { title: "Banco desatualizado", message: "Execute no SQL Editor do Supabase os scripts de supabase/ que faltam (até o 04-liquidos-e-liberar-medicamento.sql)." };
+      return { title: "Banco desatualizado", message: "Execute no SQL Editor do Supabase os scripts de supabase/ que faltam (até o 06-horarios-por-medicamento.sql)." };
     }
     if (code === "42501") {
       return { title: "Acesso negado", message: "Sua sessão não tem permissão para esta operação. Entre novamente." };
@@ -111,23 +109,33 @@ const Data = (function () {
   }
 
   function periodOf(key) {
-    return PERIODS.find(function (p) { return p.key === key; }) || { key: key, label: key, setting: null };
+    return PERIODS.find(function (p) { return p.key === key; }) || { key: key, label: key };
+  }
+
+  /** Rótulo (manhã, tarde, noite) de uma hora "HH:MM". */
+  function periodOfTime(time) {
+    return periodOf(time < "12:00" ? "morning" : time < "18:00" ? "afternoon" : "night");
   }
 
   function formOf(key) {
     return FORMS[key] || FORMS.solid;
   }
 
-  function periodTime(settings, key) {
-    const period = periodOf(key);
-    return period.setting ? settings[period.setting] : "";
+  /** Medicamentos ativos de um dia naquela hora. */
+  function medicationsFor(medications, weekday, time) {
+    return medications.filter(function (m) {
+      return m.enabled && m.weekdays.indexOf(weekday) !== -1 && (m.times || []).indexOf(time) !== -1;
+    });
   }
 
-  /** Medicamentos ativos de um dia e período. */
-  function medicationsFor(medications, weekday, period) {
-    return medications.filter(function (m) {
-      return m.enabled && m.weekdays.indexOf(weekday) !== -1 && (m.periods || []).indexOf(period) !== -1;
+  /** Horários (em ordem, sem repetir) dos medicamentos ativos de um dia; sem dia, de toda a semana. */
+  function timesOf(medications, weekday) {
+    const all = {};
+    medications.forEach(function (m) {
+      if (!m.enabled || (weekday !== undefined && m.weekdays.indexOf(weekday) === -1)) return;
+      (m.times || []).forEach(function (t) { all[t] = true; });
     });
+    return Object.keys(all).sort();
   }
 
   /* ------------------------------------------------------------------ */
@@ -174,7 +182,6 @@ const Data = (function () {
 
   function pick(settings) {
     return {
-      morning_time: settings.morning_time, afternoon_time: settings.afternoon_time, night_time: settings.night_time,
       open_seconds: settings.open_seconds, pump_seconds: settings.pump_seconds,
       automation_enabled: settings.automation_enabled
     };
@@ -239,11 +246,6 @@ const Data = (function () {
   /* ------------------------------------------------------------------ */
   /* "Liberar agora"                                                    */
   /* ------------------------------------------------------------------ */
-  /** Pede ao dispensador para liberar agora o período de hoje (o servidor calcula o horário). */
-  async function requestDispense(period) {
-    return check(await client().rpc("medtech_request_dispense", { p_period: period }));
-  }
-
   /**
    * Pede ao dispensador para liberar agora um medicamento, a qualquer hora.
    * Cápsula: abre o compartimento do dia. Líquido: liga a bomba.
@@ -358,19 +360,25 @@ const Data = (function () {
   }
 
   /**
-   * Horários de hoje: cada período com medicamento programado (ou com
-   * registro do aparelho), ligado às doses que o dispositivo enviou.
+   * Horários de hoje: cada hora com medicamento programado (ou com registro
+   * do aparelho), ligada às doses que o dispositivo enviou. As liberações
+   * manuais (dose sem período) ficam de fora.
    */
-  function todaySlots(medications, doses, settings) {
+  function todaySlots(medications, doses) {
     const today = spParts(new Date());
     const now = Date.now();
-    return PERIODS.map(function (period) {
-      const meds = medicationsFor(medications, today.weekday, period.key);
-      const slotDoses = doses.filter(function (d) {
-        return d.period === period.key && spParts(new Date(d.scheduled_for)).date === today.date;
-      });
-      if (!meds.length && !slotDoses.length) return null;
-      const time = slotDoses.length ? spParts(new Date(slotDoses[0].scheduled_for)).time : periodTime(settings, period.key);
+    const todayDoses = doses.filter(function (d) {
+      return d.period && spParts(new Date(d.scheduled_for)).date === today.date;
+    });
+    const times = timesOf(medications, today.weekday);
+    todayDoses.forEach(function (d) {
+      const t = spParts(new Date(d.scheduled_for)).time;
+      if (times.indexOf(t) === -1) times.push(t);
+    });
+    return times.sort().map(function (time) {
+      const meds = medicationsFor(medications, today.weekday, time);
+      const slotDoses = todayDoses.filter(function (d) { return spParts(new Date(d.scheduled_for)).time === time; });
+      const period = periodOfTime(time);
       const when = spDate(today.date, time);
       const state = slotDoses.length ? slotState(slotDoses) : (when.getTime() > now ? "pending" : "unknown");
       // Cada medicamento com o próprio estado (para colorir o nome na tela).
@@ -382,7 +390,7 @@ const Data = (function () {
         names: items.map(function (i) { return i.name; }), items: items,
         doses: slotDoses, state: state
       };
-    }).filter(Boolean);
+    });
   }
 
   /** Última liberação manual (dose sem período) de cada medicamento, por id. */
@@ -428,9 +436,10 @@ const Data = (function () {
     compartmentOf: compartmentOf,
     dayOf: dayOf,
     periodOf: periodOf,
+    periodOfTime: periodOfTime,
     formOf: formOf,
-    periodTime: periodTime,
     medicationsFor: medicationsFor,
+    timesOf: timesOf,
     listMedications: listMedications,
     saveMedication: saveMedication,
     setMedicationEnabled: setMedicationEnabled,
@@ -445,7 +454,6 @@ const Data = (function () {
     listDoses: listDoses,
     confirmDose: confirmDose,
     confirmSlot: confirmSlot,
-    requestDispense: requestDispense,
     requestMedication: requestMedication,
     releaseText: releaseText,
     listActiveRequests: listActiveRequests,

@@ -34,7 +34,7 @@
     if (first.attempt_at) times.push("início " + time(first.attempt_at));
     if (first.finished_at) times.push("resultado " + time(first.finished_at));
     const confirmed = s.doses.find(function (d) { return d.user_confirmed_at; });
-    if (confirmed) times.push("retirada confirmada " + UI.formatDateTime(new Date(confirmed.user_confirmed_at)));
+    if (confirmed) times.push("tomado " + UI.formatDateTime(new Date(confirmed.user_confirmed_at)));
     const done = s.state === "user_confirmed";
     return '<li class="item' + (done ? " is-done" : "") + '">' +
       '<div class="item__main">' +
@@ -94,7 +94,7 @@
     if (!button) return;
     const doseId = button.getAttribute("data-confirm-dose");
     const ok = await UI.confirm({
-      title: "Você retirou os medicamentos?",
+      title: "Você tomou os medicamentos?",
       message: doseId
         ? "Confirme somente se você pegou o medicamento desta liberação manual."
         : "Confirme somente se você pegou os medicamentos deste período no dispensador.",
@@ -105,7 +105,7 @@
     try {
       if (doseId) await Data.confirmDose(doseId);
       else await Data.confirmSlot(button.getAttribute("data-confirm"), button.getAttribute("data-period"));
-      UI.toast("Retirada confirmada.", "success");
+      UI.toast("Marcado como tomado.", "success");
       await load();
     } catch (error) {
       UI.setButtonLoading(button, false);

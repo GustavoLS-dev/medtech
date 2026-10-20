@@ -34,7 +34,7 @@ struct PedidoRemedio {
 PedidoRemedio pedidosRemedio[MAX_PEDIDOS];
 uint8_t totalPedidosRemedio = 0;
 
-constexpr size_t MAX_RESPOSTA = 8192;
+constexpr size_t MAX_RESPOSTA = 16384;  // agenda com ate 56 horarios por semana
 int32_t diferencaRelogio = 0;   // relogio local - relogio do servidor (s)
 bool relogioConferido = false;  // diferenca dentro do limite na ultima sincronizacao
 
@@ -161,7 +161,7 @@ bool converterAgenda(JsonDocument &doc, Agenda &nova) {
     if (solidos < 0 || liquidos < 0 || solidos + liquidos != meds) return false;
     if (!lerPeriodo(h["period"].as<const char *>(), periodo) || !lerHorario(h["time"].as<const char *>(), minutos)) return false;
     for (int i = 0; i < nova.total; i++)
-      if (nova.itens[i].diaSemana == dia && nova.itens[i].periodo == periodo) return false;  // repetido
+      if (nova.itens[i].diaSemana == dia && nova.itens[i].minutos == minutos) return false;  // mesmo dia e hora repetidos
     Horario &novo = nova.itens[nova.total++];
     novo.atualizadoEm = uint32_t(h["updated_at"].as<int64_t>());
     novo.minutos = minutos;

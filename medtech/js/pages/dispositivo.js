@@ -62,16 +62,16 @@
   }
 
   // Um compartimento por dia: servo 0 = segunda ... servo 6 = domingo.
-  function renderSlots(medications, settings) {
+  function renderSlots(medications) {
     document.getElementById("slot-list").innerHTML = '<ul class="item-list">' + Data.DAYS.map(function (d) {
-      const periods = Data.PERIODS.filter(function (p) { return Data.medicationsFor(medications, d.weekday, p.key).length; });
+      const times = Data.timesOf(medications, d.weekday);
       const compartment = Data.compartmentOf(d.weekday);
       return '<li class="item"><div class="item__main">' +
         '<span class="slot-tag">' + d.short + "</span>" +
         '<div><p class="item__title">' + d.name + ' <span class="text-xs text-subtle">· servo ' + (compartment - 1) + "</span></p>" +
-        '<p class="item__meta">' + (periods.length
-          ? UI.escapeHtml(periods.map(function (p) {
-              return p.label + " " + Data.periodTime(settings, p.key) + " (" + Data.medicationsFor(medications, d.weekday, p.key).length + ")";
+        '<p class="item__meta">' + (times.length
+          ? UI.escapeHtml(times.map(function (t) {
+              return t + " (" + Data.medicationsFor(medications, d.weekday, t).length + ")";
             }).join(" · "))
           : '<span class="text-subtle">Nada programado</span>') + "</p>" +
         "</div></div></li>";
@@ -87,7 +87,7 @@
     }
     box.innerHTML = '<ul class="item-list">' + events.map(function (e) {
       const when = e.scheduled_for ? UI.formatDate(new Date(e.scheduled_for), { weekday: "short", hour: "2-digit", minute: "2-digit" }) : "";
-      const slot = !when ? "" : e.period ? Data.periodOf(e.period).label + " de " + when : "Liberação manual de " + when;
+      const slot = !when ? "" : e.period ? "Horário de " + when : "Liberação manual de " + when;
       return '<li class="item"><div>' +
         '<span class="badge badge--' + (EVENT_TONES[e.event_type] || "neutral") + '">' + UI.escapeHtml(EVENT_LABELS[e.event_type] || e.event_type) + "</span>" +
         (slot ? ' <span class="text-xs text-muted">' + UI.escapeHtml(slot) + "</span>" : "") +
@@ -104,7 +104,7 @@
       UI.clearAlert(pageMessage);
       renderDevice();
       text("info-auto", results[3].automation_enabled ? "Ligada (altere em Programação)" : "Desligada (ligue em Programação)");
-      renderSlots(results[1], results[3]);
+      renderSlots(results[1]);
       renderEvents(results[2]);
     } catch (error) {
       const info = Data.describeError(error);

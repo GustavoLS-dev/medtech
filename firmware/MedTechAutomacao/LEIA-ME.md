@@ -1,6 +1,6 @@
 # Firmware MedTechAutomacao (organizador semanal)
 
-Este firmware automatiza o organizador: **7 compartimentos, um por dia** (servo 0 = segunda … servo 6 = domingo), cada um com **manhã, tarde e noite**. No horário de cada período, o compartimento do dia abre, fica aberto pelo tempo configurado no site (**padrão: 1 minuto**) e fecha sozinho. Depois disso, o ESP32 registra a liberação no site, e cada medicamento do período entra no relatório do dia.
+Este firmware automatiza o organizador: **7 compartimentos, um por dia** (servo 0 = segunda … servo 6 = domingo). **Cada medicamento tem os próprios horários** (versão 2.5, requer `supabase/06`), definidos no cadastro do site; um horário do organizador é **dia + hora**, e o aparelho aceita até 56 horários por semana. No horário, o compartimento do dia abre, fica aberto pelo tempo configurado no site (**padrão: 1 minuto**) e fecha sozinho. Quando a porta abre e fecha, o servidor marca cada medicamento daquele horário como **tomado**. "Manhã/tarde/noite" agora é só o rótulo calculado pela hora.
 
 Nada precisa ser digitado no terminal: a automação é ligada e desligada no site, na página **Programação**. O Monitor Serial serve só para diagnóstico.
 
@@ -10,7 +10,7 @@ Nada precisa ser digitado no terminal: a automação é ligada e desligada no si
 
 **Buzzer (versão 2.3):** ligado no **GPIO 23** (+ no pino, − no GND). Toca **bipes por 10 s** no começo de toda liberação real: horário programado, "Liberar agora" e "Liberar período". Os comandos `TESTE` e `BOMBA` ficam em silêncio, e `PARAR` cala o buzzer. Em `config.h`: `BUZZER_ATIVO` (`true` para buzzer ativo; `false` para passivo, em que o ESP32 gera o tom), `BUZZER_TOTAL_MS` (10 s) e `BUZZER_BIPE_MS` (0 = som contínuo).
 
-**Liberar período (versão 2.1):** na página **Hoje**, cada período ainda não tratado tem o botão **Liberar período**. O pedido vai para o Supabase (vale por 2 minutos); o ESP32 o recebe na próxima consulta (a cada 15 s), abre o compartimento do dia, espera o tempo configurado, fecha e registra aquele período. No horário normal ele não abre de novo. O pedido funciona mesmo com a automação desligada, porque é um comando explícito do usuário; as demais proteções (relógio, agenda, PCA9685, duplicidade) continuam valendo. No Monitor Serial aparece como `[PEDIDO]` e no LCD como `Pedido do site`.
+**Liberar período (versão 2.1, fora do site desde a 2.5):** o firmware ainda atende esses pedidos, mas o site não tem mais o botão. O pedido vai para o Supabase (vale por 2 minutos); o ESP32 o recebe na próxima consulta (a cada 15 s), abre o compartimento do dia, espera o tempo configurado, fecha e registra aquele período. No horário normal ele não abre de novo. O pedido funciona mesmo com a automação desligada, porque é um comando explícito do usuário; as demais proteções (relógio, agenda, PCA9685, duplicidade) continuam valendo. No Monitor Serial aparece como `[PEDIDO]` e no LCD como `Pedido do site`.
 
 Com o `03` instalado, o site também se atualiza **em tempo real**: a cor do medicamento muda no momento em que o aparelho registra.
 

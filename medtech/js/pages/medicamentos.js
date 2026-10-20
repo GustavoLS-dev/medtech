@@ -1,7 +1,7 @@
 /* ==========================================================================
    MedTech — pages/medicamentos.js  (medicamentos.html)
    Cadastro, edição, pausa e exclusão dos medicamentos. Cada medicamento
-   tem os dias (compartimentos do organizador) e os períodos do dia.
+   tem os dias (compartimentos do organizador) e os próprios horários.
    A validação aqui só ajuda o usuário: o banco valida tudo de novo.
    ========================================================================== */
 
@@ -13,7 +13,8 @@
   const pageMessage = document.getElementById("page-message");
   const nameInput = document.getElementById("med-name");
   const daysBox = document.getElementById("med-days");
-  const periodsBox = document.getElementById("med-periods");
+  const timesBox = document.getElementById("med-times");
+  const addTimeButton = document.getElementById("add-time");
   const formBox = document.getElementById("med-form-type");
   const enabledInput = document.getElementById("med-enabled");
   const notesInput = document.getElementById("med-notes");
@@ -46,23 +47,55 @@
     renderChoices(daysBox, Data.DAYS.map(function (d) { return { value: d.weekday, label: d.short }; }), selected);
   }
 
-  function renderPeriods(selected) {
-    renderChoices(periodsBox, Data.PERIODS.map(function (p) {
-      return { value: p.key, label: p.label + " · " + Data.periodTime(settings, p.key) };
-    }), selected);
+  // Horários: uma linha (campo + remover) por horário, até MAX_TIMES (limite do banco).
+  const MAX_TIMES = 12;
+
+  function timeInputs() {
+    return Array.from(timesBox.querySelectorAll('input[type="time"]'));
   }
+
+  function updateTimeButtons() {
+    const rows = timeInputs().length;
+    timesBox.querySelectorAll("button[data-remove-time]").forEach(function (b) { b.disabled = rows === 1; });
+    addTimeButton.hidden = rows >= MAX_TIMES;
+  }
+
+  function addTimeRow(value) {
+    const row = document.createElement("div");
+    row.className = "time-list__item";
+    row.innerHTML = '<input class="input" type="time" step="60" required aria-label="Horário">' +
+      '<button type="button" class="btn btn--ghost btn--sm" data-remove-time aria-label="Remover horário">' + Icons.get("x") + "</button>";
+    const input = row.querySelector("input");
+    input.value = value || "";
+    timesBox.insertBefore(row, addTimeButton);
+    updateTimeButtons();
+    return input;
+  }
+
+  function renderTimes(times) {
+    timesBox.querySelectorAll(".time-list__item").forEach(function (r) { r.remove(); });
+    (times && times.length ? times : ["08:00"]).forEach(addTimeRow);
+  }
+
+  addTimeButton.addEventListener("click", function () { addTimeRow("").focus(); });
+  timesBox.addEventListener("click", function (event) {
+    const remove = event.target.closest("button[data-remove-time]");
+    if (!remove || timeInputs().length === 1) return;
+    remove.closest(".time-list__item").remove();
+    updateTimeButtons();
+  });
 
   function openForm(med) {
     editingId = med ? med.id : null;
     UI.clearAlert(formMessage);
-    [nameInput, daysBox, periodsBox].forEach(Validation.clearError);
+    [nameInput, daysBox, timesBox].forEach(Validation.clearError);
 
     formTitle.lastChild.textContent = med ? "Editar medicamento" : "Novo medicamento";
     nameInput.value = med ? med.name : "";
     const formValue = med ? med.form : "solid";
     formBox.querySelectorAll("input").forEach(function (i) { i.checked = i.value === formValue; });
     renderDays(med ? med.weekdays : [1, 2, 3, 4, 5, 6, 0]);
-    renderPeriods(med ? med.periods : ["morning"]);
+    renderTimes(med ? med.times : null);
     enabledInput.checked = med ? med.enabled : true;
     notesInput.value = med && med.notes ? med.notes : "";
 
@@ -97,9 +130,12 @@
     if (weekdays.length === 0) fail(daysBox, "Escolha pelo menos um dia.");
     else Validation.clearError(daysBox);
 
-    const periods = checkedValues(periodsBox);
-    if (periods.length === 0) fail(periodsBox, "Escolha pelo menos um período.");
-    else Validation.clearError(periodsBox);
+    const times = timeInputs().map(function (i) { return i.value; });
+    if (times.some(function (t) { return !/^([01]\d|2[0-3]):[0-5]\d$/.test(t); })) {
+      fail(timesBox, "Preencha cada horário (ou remova o que estiver vazio).");
+    } else if (new Set(times).size !== times.length) {
+      fail(timesBox, "Há horários repetidos.");
+    } else Validation.clearError(timesBox);
 
     if (firstInvalid) {
       firstInvalid.focus();
@@ -109,7 +145,7 @@
       name: name,
       form: formBox.querySelector("input:checked").value,
       weekdays: weekdays,
-      periods: periods,
+      times: times.sort(),
       enabled: enabledInput.checked,
       notes: notesInput.value.trim() || null
     };
@@ -153,13 +189,13 @@
 
     if (medications.length === 0) {
       list.innerHTML = UI.emptyState("pill", "Nenhum medicamento cadastrado",
-        "Clique em “Novo medicamento” para escolher os dias e os períodos.");
+        "Clique em “Novo medicamento” para escolher os dias e os horários.");
       return;
     }
 
     list.innerHTML = '<ul class="item-list">' + medications.map(function (m) {
-      const periods = (m.periods || []).map(function (p) {
-        return '<span class="chip">' + UI.escapeHtml(Data.periodOf(p).label + " " + Data.periodTime(settings, p)) + "</span>";
+      const times = (m.times || []).map(function (t) {
+        return '<span class="chip">' + UI.escapeHtml(t) + "</span>";
       }).join("");
       const medForm = Data.formOf(m.form);
       const waiting = requests.some(function (r) { return r.medication_id === m.id; });
@@ -169,7 +205,7 @@
           "<div>" +
             '<p class="item__title">' + UI.escapeHtml(m.name) + ' <span class="text-xs text-subtle">' + medForm.label + "</span></p>" +
             '<p class="item__meta">' + UI.escapeHtml(daysText(m.weekdays)) + "</p>" +
-            '<div class="chips">' + (periods || '<span class="chip">Sem período: não será liberado</span>') + "</div>" +
+            '<div class="chips">' + (times || '<span class="chip">Sem horário: não será liberado</span>') + "</div>" +
           "</div>" +
         "</div>" +
         '<div class="item__actions">' +

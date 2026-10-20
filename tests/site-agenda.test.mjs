@@ -17,9 +17,9 @@ async function carregarData() {
 const puro = valor => JSON.parse(JSON.stringify(valor));
 
 const TODOS = [0, 1, 2, 3, 4, 5, 6];
-const remedio = (valores = {}) => ({ id: 'm1', name: 'Losartana', weekdays: TODOS, periods: ['morning'], enabled: true, ...valores });
-// Manhã sempre no passado e noite sempre no futuro (exceto exatamente à meia-noite).
-const CONFIG = { morning_time: '00:00', afternoon_time: '12:00', night_time: '23:59', open_seconds: 60, automation_enabled: true };
+// 00:00 sempre no passado e 23:59 sempre no futuro (exceto exatamente à meia-noite).
+const remedio = (valores = {}) => ({ id: 'm1', name: 'Losartana', weekdays: TODOS, times: ['00:00'], enabled: true, ...valores });
+const CONFIG = { open_seconds: 60, pump_seconds: 5, automation_enabled: true };
 
 test('compartimento do dia: segunda = 1 (servo 0) ... domingo = 7 (servo 6)', async () => {
   const Data = await carregarData();
@@ -27,16 +27,19 @@ test('compartimento do dia: segunda = 1 (servo 0) ... domingo = 7 (servo 6)', as
   assert.deepEqual(puro(Data.DAYS.map(d => d.short)), ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']);
 });
 
-test('hoje: períodos com medicamento, passado sem registro e futuro pendente', async () => {
+test('hoje: um item por hora dos medicamentos, passado sem registro e futuro pendente', async () => {
   const Data = await carregarData();
   const slots = Data.todaySlots([
-    remedio({ periods: ['morning', 'night'] }),
-    remedio({ id: 'm2', name: 'Vitamina', periods: ['night'] })
+    remedio({ times: ['00:00', '23:59'] }),
+    remedio({ id: 'm2', name: 'Vitamina', times: ['23:59', '13:30'] })
   ], [], CONFIG);
-  assert.deepEqual(puro(slots.map(s => [s.period.key, s.time, s.state, s.names.join('+')])), [
-    ['morning', '00:00', 'unknown', 'Losartana'],
-    ['night', '23:59', 'pending', 'Losartana+Vitamina']
+  assert.deepEqual(puro(slots.map(s => [s.time, s.period.label, s.names.join('+')])), [
+    ['00:00', 'Manhã', 'Losartana'],
+    ['13:30', 'Tarde', 'Vitamina'],
+    ['23:59', 'Noite', 'Losartana+Vitamina']
   ]);
+  assert.equal(slots[0].state, 'unknown');
+  assert.equal(slots[2].state, 'pending');
   const hoje = Data.spParts(new Date()).weekday;
   assert.equal(slots[0].compartment, hoje === 0 ? 7 : hoje);
 });
@@ -66,7 +69,18 @@ test('hoje: pausados e dias fora da programação não aparecem', async () => {
   const hoje = Data.spParts(new Date()).weekday;
   assert.equal(Data.todaySlots([remedio({ enabled: false })], [], CONFIG).length, 0);
   assert.equal(Data.todaySlots([remedio({ weekdays: [(hoje + 1) % 7] })], [], CONFIG).length, 0);
-  assert.equal(Data.todaySlots([remedio({ periods: [] })], [], CONFIG).length, 0);
+  assert.equal(Data.todaySlots([remedio({ times: [] })], [], CONFIG).length, 0);
+});
+
+test('horários: rótulo pela hora e lista da semana sem repetir', async () => {
+  const Data = await carregarData();
+  assert.deepEqual(puro(['00:00', '11:59', '12:00', '17:59', '18:00', '23:59'].map(t => Data.periodOfTime(t).key)),
+    ['morning', 'morning', 'afternoon', 'afternoon', 'night', 'night']);
+  const meds = [remedio({ times: ['21:00', '08:30'] }), remedio({ id: 'm2', times: ['08:30'], weekdays: [1] }),
+    remedio({ id: 'm3', times: ['06:00'], enabled: false })];
+  assert.deepEqual(puro(Data.timesOf(meds)), ['08:30', '21:00']);
+  assert.deepEqual(puro(Data.medicationsFor(meds, 1, '08:30').map(m => m.id)), ['m1', 'm2']);
+  assert.deepEqual(puro(Data.medicationsFor(meds, 2, '08:30').map(m => m.id)), ['m1']);
 });
 
 test('relatório diário: agrupa por dia (mais recente primeiro) e por período', async () => {
